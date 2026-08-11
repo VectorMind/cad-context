@@ -1,10 +1,12 @@
 # Plan: Visualization Web App For Generated Shapes
 
 Date: 2026-08-11
-Status: Planning — open points below need maintainer decisions. No
-`package.json` exists yet by design; it is materialized from OP resolutions.
-Depends on Plan 1 (`plans/2026-08/11-cad-generators-bringup/`) for the
-exchange-format contract (GLB/STL/SVG) it renders.
+Status: Approved — all open points accepted by the maintainer 2026-08-11
+(OP-201 and OP-204 with amendments recorded below). No `package.json`
+exists yet by design; it is materialized from the accepted decisions when
+Phase 1 starts. Depends on Plan 1
+(`plans/2026-08/11-cad-generators-bringup/`) for the exchange-format
+contract (GLB/STL/SVG) it renders.
 
 ## Problem Summary
 
@@ -15,6 +17,25 @@ see the shape — especially for parametric workflows with lots of adjustment
 (the Plan 3 airfoil generator is the first driving use case). The web app is
 deliberately a *quick preview and parametric helper*, not a CAD viewer
 replacement.
+
+## Resolution Summary
+
+All open points accepted by the maintainer 2026-08-11. OP-201 dropped the
+Vite-SPA fallback (Astro SSR + islands per page is the decision, reusing
+the maintainer-owned astro-huge-doc codebase wholesale); OP-204 gained an
+explicit frontend↔backend regeneration contract with single-parameter
+updates and latest-wins debouncing, and rejected the WASM option outright.
+OP-203's parameter-exposure idea was folded back into Plan 1 as a simple
+parametric demo shape. One-glance state (details in the Open Points
+section below):
+
+| OP | Topic | Accepted Resolution | Confidence | Status |
+| --- | --- | --- | --- | --- |
+| OP-201 | Web framework | Astro SSR + React islands per page; astro-huge-doc (maintainer-owned) reused as the codebase — full copy reuse; no SPA fallback | high | accepted |
+| OP-202 | 3D rendering stack | react-three-fiber + drei (GLTFLoader, STLLoader, OrbitControls, Grid, Edges); `<model-viewer>` noted for zero-effort embeds | high | accepted |
+| OP-203 | Parameter controls UI | leva for the generic schema-driven panel; rework later only if needed; Plan 1 amended to add a simple parametric demo shape | medium | accepted |
+| OP-204 | Regeneration bridge | subprocess-per-request (a) behind a designed regeneration contract: full params + optional single-changed-parameter field, one request in flight, latest-wins debounce; warm worker (b) drops in unchanged; sweeps (c) demo mode; WASM (d) **rejected** | high | accepted |
+| OP-205 | Package manager and tooling | pnpm + TypeScript + Prettier defaults; no test framework in first pass beyond build passing | medium | accepted |
 
 ## Positioning Against External Viewers
 
@@ -67,10 +88,13 @@ specifics stay in Plan 3.
     identified need here.
 - Proposal: **Astro + React islands** for consistency with the maintainer's
   existing stacks and reusable layout/theme; SSR endpoints double as the
-  regeneration API surface (OP-204). Vite SPA is the fallback if Astro SSR
-  proves to be overhead for a mostly-client app.
-- Confidence: medium-high — precedent is strong, but unlike evidence-engine
-  this app is client-heavy, which is Vite's home turf. Status: proposed.
+  regeneration API surface (OP-204).
+- Confidence: high (raised from medium-high at acceptance). Status:
+  **accepted 2026-08-11 with amendment** — the Vite-SPA fallback is
+  dropped. The maintainer owns astro-huge-doc in full, making it a strong
+  asset for **full copy reuse** as the starting codebase, not just a theme
+  source. Keep SSR simple — no SPA machinery; React islands per page are
+  fully sufficient for this app.
 
 ### OP-202 — 3D rendering stack
 
@@ -90,7 +114,7 @@ specifics stay in Plan 3.
   STLLoader, OrbitControls, Grid, Edges). Keep `<model-viewer>` noted as a
   zero-effort embed for docs/demos. Revisit three-cad-viewer if B-rep edge
   fidelity becomes a requirement.
-- Confidence: high. Status: proposed.
+- Confidence: high. Status: **accepted 2026-08-11** as proposed.
 
 ### OP-203 — Parameter controls UI
 
@@ -101,7 +125,18 @@ specifics stay in Plan 3.
 - Proposal: **leva** for the generic panel now — its schema-driven API maps
   almost 1:1 onto the parameter-schema contract; accept that Plan 3 may add
   custom components alongside it.
-- Confidence: medium. Status: proposed.
+- Confidence: medium — the maintainer is not yet familiar with these
+  libraries; leva is accepted as a try-first choice, to be reworked later
+  **only if needed**. Status: **accepted 2026-08-11**.
+
+**Cross-plan note (accepted 2026-08-11): parameter exposure lands on the
+CAD side too.** The idea of shapes exposing a small set of parameters is
+relevant to the Python generators generally, not only to this app. Plan 1
+(`11-cad-generators-bringup`) is amended accordingly: its demo work now
+includes a **simple parametric example** — one shape exposing a few
+parameters through the pydantic parameter-schema models and a documented
+`cadctx` command. The web app also reaches that example through the shared
+parameter-schema spec once it is folded.
 
 ### OP-204 — Regeneration bridge (browser → Python → new geometry)
 
@@ -123,9 +158,43 @@ specifics stay in Plan 3.
 - Proposal: **start with (a)** to prove the loop end-to-end, with the
   endpoint interface designed so **(b)** slots in behind it unchanged (same
   request/response contract, warm worker as a drop-in). Keep (c) as a
-  documented mode for demos, and (d) explicitly deferred.
+  documented mode for demos.
 - Confidence: high on the a→b sequencing; low on how far (a) alone can
-  carry interactive sliders. Status: proposed.
+  carry interactive sliders — the contract amendment below is the
+  mitigation. Status: **accepted 2026-08-11 with amendments** — (d) is
+  **rejected outright**, not merely deferred: no WASM, the app benefits
+  from real renderers of the real backend outputs only; and the
+  frontend↔backend contract is designed explicitly, below.
+
+**Amendment (accepted 2026-08-11): explicit regeneration contract with
+debounced, latest-wins requests.** The frontend↔backend interface is a
+designed contract, not an ad-hoc endpoint, so that slider interaction
+never overloads the generation pipeline:
+
+- **Request** — `POST /api/generate` with
+  `{ generator, params, changed?, seq }`:
+  - `generator`: the generator id (matches the parameter-schema contract).
+  - `params`: always the **full** parameter set — keeps mode (a)
+    stateless.
+  - `changed`: optional name of the **single parameter** that moved (the
+    slider case). Mode (a) ignores it; a warm worker (b) may use it for
+    incremental regeneration — supporting single-parameter interaction
+    without a contract change.
+  - `seq`: client-side monotonically increasing sequence number.
+- **Response** — `{ seq, artifacts, timings }` where `artifacts` maps
+  format to URL (`glb`, `svg`, …) and `timings` reports at least total
+  generation milliseconds (feeds the (b) go/no-go). Errors return
+  `{ seq, error }`.
+- **Client concurrency rule** — at most **one request in flight**. While a
+  request is running, further parameter changes are debounced and collapse
+  into a single pending latest-values request; it is dispatched only when
+  the in-flight request completes. Responses whose `seq` is older than the
+  newest dispatched request are discarded, so a stale render never
+  overwrites a fresh one. Sliders therefore cost at most one queued
+  request no matter how fast they move.
+- The contract is co-owned with the parameter-schema work and is folded
+  into `specifications/` (alongside the parameter-schema spec) at the
+  spec-fold step.
 
 ### OP-205 — Package manager and tooling
 
@@ -133,12 +202,12 @@ specifics stay in Plan 3.
   no test framework in the first pass beyond `tsc`/build passing (viewer
   proof is visual + loader round-trip). Prettier defaults.
 - Confidence: medium (pnpm matches astro-huge-doc precedent). Status:
-  proposed.
+  **accepted 2026-08-11** as proposed.
 
 ## Proposed `package.json` Sketch
 
-Materialized only after OP-201…OP-205 are accepted (shown for the Astro
-proposal; a Vite resolution changes the first three deps only):
+Reflects the accepted decisions; materialized as a real file when Phase 1
+starts:
 
 ```jsonc
 {
@@ -165,18 +234,19 @@ implementation time.)
 
 ## Implementation Phases
 
-0. **Decisions.** Maintainer resolves OP-201…OP-205.
-1. **Scaffold.** `webapp/` created per accepted framework; `package.json`,
-   TypeScript, layout shell (reusing astro-huge-doc theme if OP-201 lands
-   on Astro).
+0. **Decisions.** Done 2026-08-11 — OP-201…OP-205 accepted (OP-201, OP-204
+   amended); this plan updated to the accepted state.
+1. **Scaffold.** `webapp/` created from the astro-huge-doc codebase (full
+   copy reuse per OP-201); `package.json`, TypeScript, layout shell.
 2. **Static viewers.** GLB/STL 3D viewer page and SVG 2D viewer page,
    loading artifacts from `out/` produced by Plan 1's demos.
 3. **Parameter panel.** Generic panel rendered from a parameter-schema JSON
    (contract co-designed with Plan 1's pydantic models; folded into
    `specifications/parameter-schema/spec.md` when accepted).
-4. **Regeneration loop.** OP-204 mode (a): endpoint → `cadctx` → fresh
-   artifact → viewer refresh; measure the latency to ground the (b)
-   decision with numbers.
+4. **Regeneration loop.** OP-204 mode (a) behind the accepted regeneration
+   contract: endpoint → `cadctx` → fresh artifact → viewer refresh, with
+   the `seq`/latest-wins debounce client implemented from the start;
+   measure the latency to ground the (b) decision with numbers.
 5. **Proof.** Load round-trips and the regeneration loop recorded in
    `test.md` with timings.
 
@@ -196,5 +266,8 @@ implementation time.)
   renders with pan/zoom.
 - Changing a parameter in the panel produces a regenerated shape on screen
   without restarting the app.
+- Dragging a slider keeps at most one generation request in flight, with
+  intermediate values coalesced (latest-wins) and stale responses
+  discarded — observable in the regeneration-loop test (OP-204 contract).
 - Measured regeneration latency recorded in `test.md`, with a go/no-go
   note on escalating OP-204 to mode (b).

@@ -117,6 +117,14 @@ dependency, framework, or tool must list the candidate options with a short
 argument each, name a proposal, and carry a confidence level (`high` /
 `medium` / `low`) alongside its status.
 
+The resolution summary, placed directly after the problem summary, carries a
+**one-glance table of every open point and design decision** with columns for
+OP id, topic, proposal (the accepted resolution once decided), confidence,
+and status. The table is the at-a-glance state of the plan's decisions and is
+updated in the same pass whenever an open point changes status; the full
+candidate options and arguments stay in the detailed Open Points section
+below it.
+
 `plan.md` does not need detailed rewrites for every implementation deviation.
 Once implementation starts, facts about what actually landed belong in
 `implementation.md`.
