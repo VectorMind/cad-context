@@ -28,6 +28,12 @@ these files alone. Paste any of these prompts:
 > The agent reads `cadctx schema plate2d`, then measures both variants through
 > the Python API without writing any files.
 
+> **"Start the shape viewer so I can play with the bracket parameters."**
+> The agent runs `cadctx web` and hands back the URL. That one command installs
+> the web app's dependencies if needed, checks which backends are ready, starts
+> the Astro server, and prints where it is. Each page calls this same CLI per
+> request — there is no second server to babysit.
+
 > **"OpenSCAD isn't installed — set it up and prove it renders."**
 > `cadctx fetch openscad` provisions the binary into `.tools/`, then
 > `cadctx generate bracket-openscad` renders an STL through it.
@@ -73,6 +79,69 @@ console stays quiet:
 Geometry paths are **stable**: `bracket-cadquery` always writes
 `.cache/cad/bracket-cadquery/bracket-cadquery.glb`. Change a parameter,
 regenerate, refresh your viewer — same URL, new shape.
+
+---
+
+## Preview In The Browser
+
+```bash
+uv run cadctx web
+```
+
+That is the whole setup. It installs the web app's dependencies on first run,
+reports which backends are ready, starts the Astro server and prints its URL:
+
+```text
+ok web — serving http://127.0.0.1:4321/ (5/5 backends ready)
+  url: http://127.0.0.1:4321/
+  webapp: webapp
+  backends_ready: shapely, cadquery, build123d, openscad, trimesh
+  backends_missing: none
+  generators: http://127.0.0.1:4321/api/generators.json
+  note: stop with Ctrl-C; the dev server log is in the report file
+  result: .cache/results/web.json
+  report: .cache/reports/web.log
+```
+
+Open the URL, pick a generator, drag a slider: the shape regenerates and the
+measured volume or area updates next to it.
+
+**Both halves are running, and this is how they meet.** There is no separate
+Python service — a page's backend is an Astro SSR handler that shells out to
+this same CLI:
+
+```text
+browser ──POST /api/generate──▶ SSR handler ──▶ uv run cadctx generate … --json
+   ▲                                                        │
+   └──── GET /api/artifact/<generator>/<file> ◀── .cache/cad/ ◀┘
+```
+
+Dragging a slider never floods that pipeline: the client keeps **one request in
+flight**, folds intermediate values into a single queued request, and drops any
+response that a newer one has already superseded. A 40-step slider drag on the
+build123d bracket produced 2 generations, not 40.
+
+**Only a few parameters are exposed on purpose.** The generators keep their
+full parameter models; the app publishes a short editable list per generator in
+[`webapp/config/exposure.json`](webapp/config/exposure.json) — names only, with
+ranges and units still read from the generator's schema:
+
+```jsonc
+"plate2d": { "editable": ["width", "slot_count", "slot_width"], "preview": "svg" }
+```
+
+Anything not listed is shown read-only at its default, and the endpoint rejects
+it before spawning anything:
+
+```bash
+curl -s -X POST localhost:4321/api/generate -H 'content-type: application/json' \
+  -d '{"generator":"plate2d","params":{"corner_radius":12},"seq":1}'
+# {"seq":1,"error":"parameter \"corner_radius\" is not editable for plate2d
+#  (editable: width, slot_count, slot_width)"}
+```
+
+Details in [webapp/README.md](webapp/README.md); the binding rules are in
+[specifications/web-app/spec.md](specifications/web-app/spec.md).
 
 ---
 
@@ -150,6 +219,19 @@ uv run cadctx fetch --list
 uv run cadctx fetch openscad
 ```
 
+### `cadctx web [--port 4321] [--host 127.0.0.1] [--open] [--no-install]`
+
+Serve the preview web app in [`webapp/`](webapp/): a browser page per generator
+with a few sliders, a 3D or 2D viewport, and live regeneration. Dependencies
+are installed on first run; the dev server's own output goes to
+`.cache/reports/web.log`, and the console prints only the URL. Stop it with
+Ctrl-C.
+
+```bash
+uv run cadctx web
+uv run cadctx web --port 4400 --open
+```
+
 ### `cadctx paths`
 
 Print the workspace layout and the fixed artifact path for every generator and
@@ -202,6 +284,10 @@ comparing backends is the point, not choosing one.
 ```bash
 uv run pytest          # export round-trips, measured tolerances, CLI contract
 uv run ruff check .    # lint
+
+cd webapp && pnpm build   # the web app's production build
+cd webapp && pnpm check   # TypeScript / astro check
+cd webapp && pnpm test    # the regeneration scheduler's rules
 ```
 
 Working agreements: [WORKFLOW.md](WORKFLOW.md) · plans in [plans/](plans/) ·

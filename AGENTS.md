@@ -35,6 +35,11 @@ that is not reachable through a documented `cadctx` command is not delivered.**
 - Use `--json` when you want to parse a command's output directly; use
   `--quiet` when you only need the result path.
 
+Starting the preview web app is a command like any other: `cadctx web` installs
+what is missing, starts the Astro server and prints the URL. Do not run `pnpm`
+by hand to serve it, and do not add a second long-running Python process — the
+app's pages call this CLI per request.
+
 ### 2. The Python API — for questions, never for artifacts
 
 `cad_context.api` is available whenever you want numbers, a schema, or a live
@@ -118,6 +123,19 @@ task could be solved by picking a winner, don't:
 
 Defaults alone must produce a valid shape — every generator has to be runnable
 with no parameters.
+
+## Touching The Web App
+
+`webapp/` is a preview surface, not a second implementation. Two rules decide
+most questions there (the rest are in `specifications/web-app/spec.md`):
+
+- **Ask the CLI.** Anything about shapes — the registry, a schema, a fresh
+  artifact — comes from a `cadctx … --json` subprocess in a server handler.
+  Never re-derive geometry, parameter ranges or paths in TypeScript.
+- **Expose a few knobs, deliberately.** `webapp/config/exposure.json` lists the
+  parameter *names* each generator publishes; the endpoint rejects everything
+  else. Adding a parameter to a generator does not put it on the API — adding
+  its name there does. Never copy a range, unit or default into that file.
 
 ## Adding An External Tool
 

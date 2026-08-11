@@ -1,0 +1,33 @@
+---
+import '../layout/app.css';
+
+interface Props {
+  title: string;
+  crumb?: string;
+  command?: string;
+}
+
+const { title, crumb, command } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · cad-context</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="appbar">
+        <a class="brand" href="/">cad-context</a>
+        {crumb && <span class="crumb">{crumb}</span>}
+        <span class="spacer"></span>
+        {command && <code>{command}</code>}
+      </header>
+      <main>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

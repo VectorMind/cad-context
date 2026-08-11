@@ -28,6 +28,10 @@ and running notes in `plans/` instead.
   parametric generator declares its parameters (names, types, ranges, defaults)
   so a consumer can render controls for any generator without knowing its
   internals.
+- [`web-app/`](web-app/spec.md) — the preview web app: SSR handlers calling the
+  CLI as the only geometry source, curated parameter exposure, the regeneration
+  contract (full params, `changed`, `seq`, one request in flight, latest-wins),
+  and how artifacts are served.
 - [`external-binaries/`](external-binaries/spec.md) — external tools declared in
   `config/artifacts.yaml`, provisioned by `cadctx fetch` into `.tools/`, and
   degrading gracefully when absent.

@@ -64,6 +64,11 @@ are `null` rather than absent, so consumers can index them unconditionally.
 - The schema is the only place parameter metadata is defined. Ranges, units and
   descriptions are never duplicated in a UI, in documentation, or in a second
   schema file — they are read from the generator.
+- A consumer may expose only part of the declaration. Publishing a generator's
+  parameters is a deliberate choice, not an automatic consequence of declaring
+  them: see the curated-exposure rule in
+  `specifications/web-app/spec.md`. Such a selection lists parameter *names*
+  only and resolves everything else from this schema.
 
 ## Generator Identity
 

@@ -17,7 +17,7 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 
-from . import artifacts, backends, exchange, generators, results, workspace
+from . import artifacts, backends, exchange, generators, results, web, workspace
 from .params import parse_overrides
 
 app = typer.Typer(
@@ -415,6 +415,70 @@ def fetch(
         )
 
     _run(ctx, "fetch", body)
+
+
+@app.command("web")
+def web_command(
+    ctx: typer.Context,
+    port: Annotated[int, typer.Option("--port", help="Port to serve on")] = 4321,
+    host: Annotated[
+        str, typer.Option("--host", help="Interface to bind")
+    ] = "127.0.0.1",
+    install: Annotated[
+        bool,
+        typer.Option("--install/--no-install", help="Run pnpm install when needed"),
+    ] = True,
+    open_browser: Annotated[
+        bool, typer.Option("--open", help="Open the app in a browser once it is up")
+    ] = False,
+) -> None:
+    """Serve the shape viewer web app; its pages call this CLI per request."""
+    server: dict[str, Any] = {}
+
+    def body() -> results.Result:
+        directory = web.webapp_dir()
+        log = workspace.ensure(workspace.reports_dir()) / "web.log"
+        if install and not web.dependencies_installed(directory):
+            web.install(directory, log)
+        rows = backends.status()
+        ready = [r["backend"] for r in rows if r["available"]]
+        missing = [r["backend"] for r in rows if not r["available"]]
+        started = web.start(directory, log, host=host, port=port)
+        server["handle"] = started
+        return results.Result(
+            command="web",
+            status="degraded" if missing else "ok",
+            summary=f"serving {started.url} ({len(ready)}/{len(rows)} backends ready)",
+            facts={
+                "url": started.url,
+                "webapp": workspace.rel(directory),
+                "backends_ready": ready,
+                "backends_missing": missing or "none",
+                "generators": f"{started.url}api/generators.json",
+            },
+            report=workspace.rel(log),
+            notes=[
+                "stop with Ctrl-C; the dev server log is in the report file",
+                *(f"{b}: backend not installed, its pages stay empty" for b in missing),
+            ],
+            data={
+                "url": started.url,
+                "pid": started.process.pid,
+                "webapp": workspace.rel(directory),
+                "log": workspace.rel(log),
+                "backends": rows,
+            },
+        )
+
+    _run(ctx, "web", body)
+    handle: web.DevServer | None = server.get("handle")
+    if handle is None:  # pragma: no cover - body always sets it on success
+        return
+    if open_browser:
+        import webbrowser
+
+        webbrowser.open(handle.url)
+    raise typer.Exit(code=handle.wait())
 
 
 @app.command()

@@ -1,0 +1,6 @@
+# pnpm 10 reads install settings from here. esbuild (used by Vite/Astro) and
+# sharp (Astro's image service) need their postinstall to place platform
+# binaries; without this pnpm skips them and the build fails at first use.
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

@@ -1,0 +1,21 @@
+{
+  "$comment": "The app's editable surface. A generator's full parameter set stays in the Python models; only the names listed here are reachable through POST /api/generate. Everything else is served read-only at its default, so the API surface is a few deliberate knobs rather than an auto-exposed model. Adding a knob is one word here; a generator that is not listed is previewable but not editable.",
+  "generators": {
+    "plate2d": {
+      "editable": ["width", "slot_count", "slot_width"],
+      "preview": "svg"
+    },
+    "bracket-cadquery": {
+      "editable": ["width", "height", "hole_diameter"],
+      "preview": "glb"
+    },
+    "bracket-build123d": {
+      "editable": ["width", "height", "hole_diameter"],
+      "preview": "glb"
+    },
+    "bracket-openscad": {
+      "editable": ["width", "height", "hole_diameter"],
+      "preview": "glb"
+    }
+  }
+}

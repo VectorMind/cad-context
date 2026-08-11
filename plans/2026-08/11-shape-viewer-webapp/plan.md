@@ -1,10 +1,10 @@
 # Plan: Visualization Web App For Generated Shapes
 
 Date: 2026-08-11
-Status: Approved — all open points accepted by the maintainer 2026-08-11
-(OP-201 and OP-204 with amendments recorded below). No `package.json`
-exists yet by design; it is materialized from the accepted decisions when
-Phase 1 starts. Depends on Plan 1
+Status: Implemented 2026-08-11 — see `implementation.md` for what landed and
+`test.md` for the proof. All open points accepted by the maintainer
+2026-08-11 (OP-201 and OP-204 with amendments recorded below; OP-206 and
+OP-207 raised and accepted during implementation). Depends on Plan 1
 (`plans/2026-08/11-cad-generators-bringup/`) for the exchange-format
 contract (GLB/STL/SVG) it renders.
 
@@ -26,8 +26,11 @@ the maintainer-owned astro-huge-doc codebase wholesale); OP-204 gained an
 explicit frontend↔backend regeneration contract with single-parameter
 updates and latest-wins debouncing, and rejected the WASM option outright.
 OP-203's parameter-exposure idea was folded back into Plan 1 as a simple
-parametric demo shape. One-glance state (details in the Open Points
-section below):
+parametric demo shape. Implementation raised two further decisions, both
+accepted the same day: OP-206 (the API exposes a curated subset of each
+generator's parameters, not the whole model) and OP-207 (one `cadctx web`
+command brings the whole thing up). One-glance state (details in the Open
+Points section below):
 
 | OP | Topic | Accepted Resolution | Confidence | Status |
 | --- | --- | --- | --- | --- |
@@ -36,6 +39,8 @@ section below):
 | OP-203 | Parameter controls UI | leva for the generic schema-driven panel; rework later only if needed; Plan 1 amended to add a simple parametric demo shape | medium | accepted |
 | OP-204 | Regeneration bridge | subprocess-per-request (a) behind a designed regeneration contract: full params + optional single-changed-parameter field, one request in flight, latest-wins debounce; warm worker (b) drops in unchanged; sweeps (c) demo mode; WASM (d) **rejected** | high | accepted |
 | OP-205 | Package manager and tooling | pnpm + TypeScript + Prettier defaults; no test framework in first pass beyond build passing | medium | accepted |
+| OP-206 | Editable parameter surface | Curated allowlist per generator (`webapp/config/exposure.json`, names only); unexposed parameters read-only at their defaults; endpoint rejects the rest | high | accepted |
+| OP-207 | Starting both halves | One `cadctx web` command: installs deps, preflights backends, starts the Astro server, prints the URL; no second Python process | high | accepted |
 
 ## Positioning Against External Viewers
 
@@ -203,6 +208,51 @@ never overloads the generation pipeline:
   proof is visual + loader round-trip). Prettier defaults.
 - Confidence: medium (pnpm matches astro-huge-doc precedent). Status:
   **accepted 2026-08-11** as proposed.
+
+### OP-206 — Editable parameter surface
+
+- Question: does the web API expose every parameter a generator declares, or a
+  chosen subset?
+- Options:
+  - **Full schema auto-exposed**: zero configuration, every knob reachable;
+    but the panel becomes a form over the whole model, and the endpoint
+    forwards whatever the browser sends.
+  - **Curated allowlist per generator** (names only, in the app's config): the
+    panel stays a preview-and-tweak surface, the endpoint validates against a
+    small known set, and exposing a knob is a deliberate act. Costs one line
+    per generator.
+  - **Per-parameter flag in the pydantic models**: keeps the choice next to the
+    parameter, but bakes a UI concern into the geometry package and makes every
+    consumer inherit one app's opinion.
+- Proposal: **curated allowlist in the app**, carrying names only — ranges,
+  units, steps and defaults keep coming from the parameter schema, so nothing
+  is duplicated. Unexposed parameters are served read-only at their defaults.
+- Confidence: high. Status: **accepted 2026-08-11** — raised by the maintainer
+  during implementation ("not everything needs to be through the API, only the
+  needed parameters to edit"). Folded into
+  `specifications/web-app/spec.md`, with a pointer from
+  `specifications/parameter-schema/spec.md`.
+
+### OP-207 — Starting both halves
+
+- Question: how does a user (or an agent following a one-line prompt) get the
+  Python side and the web server running together?
+- Options:
+  - **Documented two-step** (`uv sync`, then `pnpm dev` in `webapp/`): no new
+    code, but it is two surfaces, and it contradicts the rule that every
+    capability is reachable through a documented `cadctx` command.
+  - **`cadctx web`**: one command that installs the app's dependencies when
+    missing, preflights backend availability, starts the Astro dev server,
+    verifies it answers, and reports the URL through the normal result-file
+    contract.
+  - **A long-running Python service next to the web server**: matches the
+    "two servers" mental model but is exactly the warm-worker upgrade OP-204
+    defers; adding it now buys nothing and doubles what can break.
+- Proposal: **`cadctx web`**, and documentation that says plainly there is no
+  second Python process — a page's backend is a `cadctx` subprocess per
+  request.
+- Confidence: high. Status: **accepted 2026-08-11** — raised by the maintainer
+  during implementation (a simple prompt should bring both halves up).
 
 ## Proposed `package.json` Sketch
 

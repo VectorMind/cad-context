@@ -1,0 +1,27 @@
+---
+// One generator, one page. The schema is resolved on the server so the island
+// starts with the real contract instead of fetching it after hydration.
+import ShapeWorkbench from '../../components/ShapeWorkbench.tsx';
+import Layout from '../../layout/Layout.astro';
+import { exposedSchema } from '../../server/exposure.ts';
+
+export const prerender = false;
+
+const { generator } = Astro.params;
+
+let schema;
+try {
+  schema = await exposedSchema(generator ?? '');
+} catch (cause) {
+  return new Response(cause instanceof Error ? cause.message : String(cause), {
+    status: 404,
+  });
+}
+
+const command = `uv run cadctx generate ${schema.generator} -f ${schema.preview}`;
+---
+
+<Layout title={schema.title} crumb={schema.generator} command={command}>
+  <!-- client:only — three.js and leva are browser-only. -->
+  <ShapeWorkbench client:only="react" schema={schema} />
+</Layout>

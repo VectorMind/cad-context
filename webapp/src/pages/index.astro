@@ -1,0 +1,60 @@
+---
+// Rendered on the server from `cadctx generators` — the app never keeps its
+// own list of what can be generated.
+import Layout from '../layout/Layout.astro';
+import { listGenerators } from '../server/cadctx.ts';
+import { exposureFor } from '../server/exposure.ts';
+
+export const prerender = false;
+
+let generators: Awaited<ReturnType<typeof listGenerators>> = [];
+let error: string | null = null;
+try {
+  generators = await listGenerators();
+} catch (cause) {
+  error = cause instanceof Error ? cause.message : String(cause);
+}
+---
+
+<Layout title="Shapes" command="uv run cadctx web">
+  <div class="home">
+    <h1>Generated shapes</h1>
+    <p class="lede">
+      Pick a generator, move a few parameters, watch the shape regenerate. Every
+      page talks to the Python side through <code>cadctx</code>; nothing here
+      holds a second copy of the geometry logic.
+    </p>
+
+    {error && <p class="error">cadctx failed: {error}</p>}
+
+    <div class="cards">
+      {
+        generators.map((generator) => {
+          const editable = exposureFor(generator.id).editable;
+          return (
+            <a
+              class:list={['card', { unavailable: !generator.available }]}
+              href={`/viewer/${generator.id}`}
+            >
+              <h2>{generator.title}</h2>
+              <p class="meta">
+                <span class="tag">{generator.kind}</span> {generator.backend} ·{' '}
+                {generator.formats.join(', ')}
+                {!generator.available && ' · backend not installed'}
+              </p>
+              <p class="knobs">
+                {editable.length > 0 ? (
+                  <>
+                    editable: <code>{editable.join(', ')}</code>
+                  </>
+                ) : (
+                  'preview only — no parameters exposed'
+                )}
+              </p>
+            </a>
+          );
+        })
+      }
+    </div>
+  </div>
+</Layout>
