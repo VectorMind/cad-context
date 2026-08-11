@@ -1,10 +1,9 @@
 # Plan: CAD Generators Python Environment Bringup
 
 Date: 2026-08-11
-Status: Approved — all open points accepted by the maintainer 2026-08-11
-(OP-103 and OP-106 with amendments recorded below). No code or
-`pyproject.toml` exists yet by design; the dependency file is materialized
-from the accepted decisions when Phase 1 starts.
+Status: Implemented 2026-08-11 — all open points accepted (OP-103, OP-106 and
+OP-108 with amendments recorded below), Phases 1–5 executed. Facts about what
+landed are in `implementation.md`; runtime proof is in `test.md`.
 
 ## Problem Summary
 
@@ -18,8 +17,9 @@ shared exchange-format contracts, instead of standardizing on one tool.
 
 All open points accepted by the maintainer 2026-08-11. OP-103 gained a
 config-driven binary fetch script; OP-106 was strengthened into the
-CLI-as-single-interface rule. One-glance state (details in the Open Points
-section below):
+CLI-as-single-interface rule; OP-108 was raised and accepted during
+implementation and supersedes the earlier `out/` convention. One-glance state
+(details in the Open Points section below):
 
 | OP | Topic | Accepted Resolution | Confidence | Status |
 | --- | --- | --- | --- | --- |
@@ -30,6 +30,7 @@ section below):
 | OP-105 | 2D vector stack | ezdxf + drawsvg + shapely | high (drawsvg medium) | accepted |
 | OP-106 | Base runtime / CLI | numpy, pydantic, typer, rich; `cadctx` CLI as the single documented interface for humans *and* agents — no skills; includes a simple parametric demo shape exposing a few parameters (amendment from Plan 2, 2026-08-11) | high | accepted |
 | OP-107 | Tooling | uv, ruff, pytest, evidence-engine conventions | high | accepted |
+| OP-108 | Output layout and second surface | all execution output under git-ignored `.cache/` (`results/`, `reports/`, `cad/`, `scratch/`); minimal console; geometry at fixed per-generator paths; side-effect-free Python API alongside the CLI — supersedes `out/` | high | accepted |
 
 ## Goal And Objectives
 
@@ -185,6 +186,33 @@ consumes.
   identical to evidence-engine conventions.
 - Confidence: high. Status: **accepted 2026-08-11** as proposed.
 
+### OP-108 — Execution output layout and the second (Python) surface
+
+Raised by the maintainer at the start of implementation; supersedes the `out/`
+directory named in the earlier phases and exit criteria.
+
+- Options:
+  - **`out/` for everything** (the original sketch): one directory mixing
+    geometry, logs and summaries; simple, but the console still has to carry
+    whatever the command wants to say, and geometry filenames drift.
+  - **`.cache/` with typed subdirectories**: `results/` for a small
+    JSON+Markdown summary per command, `reports/` for long output,
+    `cad/` for geometry at fixed paths, `scratch/` for throwaway scripts;
+    console limited to a status line, a few facts and the result path.
+  - Timestamped or hashed artifact names per run: good provenance, but breaks
+    an iterative viewing loop because every regeneration moves the file.
+- Proposal: the typed `.cache/` layout, with **fixed** geometry paths
+  (`.cache/cad/<generator>/<generator>.<ext>`) so a browser tab or viewer holds
+  one URL across a whole parameter-iteration session, and an explicit
+  `--out-dir` escape hatch when variants must genuinely coexist.
+- Second surface: agents may call the Python functions directly (e.g. from a
+  generated throwaway script). Those calls return **data only** — geometry,
+  metrics, live kernel objects — and write no files at all; producing artifacts
+  stays an explicit act through the CLI or the export layer.
+- Confidence: high. Status: **accepted 2026-08-11** as proposed. Folded into
+  `specifications/workspace-layout/spec.md` and
+  `specifications/agent-interface/spec.md`.
+
 ## Proposed `pyproject.toml` Sketch
 
 Reflects the accepted decisions; materialized as a real file when Phase 1
@@ -250,11 +278,14 @@ dev = ["pytest", "ruff"]
 
 ## Exit Criteria
 
+(Artifact locations follow OP-108: `.cache/cad/`, not `out/`.)
+
 - `uv sync --extra all` succeeds from a clean checkout on Windows.
 - `cadctx fetch openscad` downloads, unpacks, and resolves a working
   OpenSCAD executable into `.tools/` from `config/artifacts.yaml` alone.
 - `cadctx demo` (or pytest equivalent) produces SVG, DXF, STEP, STL, and GLB
-  artifacts under `out/`.
+  artifacts at fixed paths under `.cache/cad/`, with per-command summaries in
+  `.cache/results/` and a console that stays a few lines long.
 - Every shipped `cadctx` command is documented in `README.md` with a usage
   line and example, sufficient for a human or an agent to run it from the
   documentation alone (OP-106).

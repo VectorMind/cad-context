@@ -1,0 +1,39 @@
+# External binaries, declared as artifacts rather than manual installs.
+#
+# `cadctx fetch <name>` reads this file, downloads the matching asset, verifies
+# it, unpacks it into `install_dir` (git-ignored) and reports the resolved
+# executable. Runtime detection checks `.tools/` first, then PATH.
+#
+# Per-platform entry keys are `<sys.platform>-<machine>`, e.g. `win32-amd64`,
+# `linux-amd64`, `darwin-arm64`.
+#
+# Source kinds:
+#   github-release  — resolve an asset from a pinned release tag via the
+#                     GitHub releases API (`repo` + `tag` + `pattern`).
+#   url             — download a direct URL (for builds not published on
+#                     GitHub, e.g. OpenSCAD nightly snapshots on openscad.org).
+#
+# `executable` is a glob evaluated inside the unpacked tree.
+
+version: 1
+
+artifacts:
+  openscad:
+    description: OpenSCAD CSG renderer, used to render .scad sources to STL.
+    source: github-release
+    repo: openscad/openscad
+    tag: "openscad-2021.01"
+    install_dir: .tools/openscad
+    platforms:
+      win32-amd64:
+        pattern: "OpenSCAD-*-x86-64.zip"
+        archive: zip
+        executable: "**/openscad.exe"
+      linux-amd64:
+        pattern: "OpenSCAD-*-x86_64.AppImage"
+        archive: none
+        executable: "OpenSCAD-*.AppImage"
+      darwin-arm64:
+        pattern: "OpenSCAD-*.dmg"
+        archive: none
+        executable: "OpenSCAD-*.dmg"

@@ -1,0 +1,16 @@
+# Derived artifacts — every execution output lands here, never in git.
+.cache/
+
+# Externally fetched binaries (cadctx fetch)
+.tools/
+
+# Legacy/manual output directory
+out/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
