@@ -7,10 +7,15 @@ files mean.
 ## Conventions
 
 - **Units are millimetres** in every format. DXF declares `$INSUNITS = 4`;
-  STEP, STL, GLB and SVG carry millimetre values.
-- **Coordinate frames**: 3D parts are built Z-up in their own frame with the
-  part's minimum corner at the origin. 2D parts are built Y-up in the XY plane
-  with the outline's minimum corner at the origin.
+  STEP, STL, GLB, SVG and the coordinate payload carry millimetre values.
+- **Coordinate frames**: 3D parts are built Z-up, 2D parts Y-up in the XY
+  plane. The origin is the part's **declared datum** — the point its parameters
+  are defined against — and a generator states that datum in its parameter
+  model. For a plate or a bracket the datum is the minimum corner; for an
+  airfoil it is the leading edge of the camber line with the chord line on
+  y = 0, and the outline may reach marginally beyond it. Inventing a different
+  origin per format is forbidden: every format of one generator carries the
+  same datum.
 - **Formats are the contract boundary.** A backend joins the repository by
   honoring the formats below; it never has to match another backend's API,
   and no code outside a backend module interprets that backend's native
@@ -20,7 +25,7 @@ files mean.
 
 | Path | Required | Also emitted |
 | --- | --- | --- |
-| 2D generator | SVG **and** DXF | — |
+| 2D generator | SVG **and** DXF | JSON coordinate payload |
 | 3D B-rep backend (OCCT: CadQuery, build123d) | STL **and** GLB | STEP |
 | 3D CSG backend (OpenSCAD) | OpenSCAD source (`.scad`) | STL and GLB when the binary is resolvable |
 
@@ -32,6 +37,26 @@ files mean.
 - A backend whose external prerequisite is missing **degrades, never fails**:
   it emits what it can (for OpenSCAD, the `.scad` source), records the skipped
   formats with a reason in its result file, and reports `degraded` status.
+
+## The JSON Coordinate Payload
+
+SVG and DXF are drawings; the `json` format is the same geometry as **data**,
+for a consumer that must draw its own axes, overlays and annotations rather
+than display a finished picture. A generator that has curves worth plotting
+publishes one; the exporter writes it verbatim and interprets nothing.
+
+```jsonc
+{ "kind": "profile", "units": "mm", "chord": 120.0,
+  "bounds": [minx, miny, maxx, maxy],
+  "curves":  [{ "id": "outline", "role": "surface", "closed": true, "points": [[x, y], …] }],
+  "markers": [{ "id": "max_thickness", "label": "…", "segment": [[x, y], [x, y]] }] }
+```
+
+- Coordinates are millimetres on the generator's datum, identical to the ones
+  the SVG, DXF and any 3D section wires are built from — one computation, many
+  formats. A consumer that redraws these points is reading the generator.
+- The payload carries geometry and annotation only. Measurements belong in the
+  result file's `metrics`, never here, and geometry never travels as a metric.
 
 ## Tessellation
 
@@ -50,7 +75,9 @@ exists. Every written artifact is loaded back and checked:
 - STEP files: re-imported through a kernel, volume and bounding box measured;
 - DXF files: re-read, polyline and vertex counts and bounds measured, units
   confirmed;
-- SVG files: structural check (view box present, expected path count).
+- SVG files: structural check (view box present, expected path count);
+- JSON payloads: re-read, curve, point and marker counts and declared units
+  measured.
 
 Measurements land in the command's result file under `measurements`.
 
@@ -60,7 +87,16 @@ Backends that build the same reference part must agree. Each generator declares
 an analytic volume (or area) computed from its parameters alone; that analytic
 value is the reference, not another backend's output.
 
+- Generators that build the same part on different backends declare a shared
+  **family**. Only one family is compared at a time: an analytic reference
+  belongs to a part, not to the repository, so comparing across families would
+  be meaningless.
 - Kernel volumes agree with the analytic value to within 1e-6 relative.
 - Tessellated and faceted volumes agree with it to within **1%**.
-- `cadctx compare` measures this across every installed 3D backend and fails
-  the tolerance check loudly rather than averaging disagreement away.
+- Where a closed form is exact only over part of the parameter space, the
+  generator says so and the comparison quotes the parameters it ran at. Outside
+  that range the backends must still agree **with each other** — losing
+  exactness must never quietly become losing agreement.
+- `cadctx compare --family <name>` measures this across every installed backend
+  of that family and fails the tolerance check loudly rather than averaging
+  disagreement away.

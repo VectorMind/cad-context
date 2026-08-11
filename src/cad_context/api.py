@@ -10,6 +10,7 @@ from cad_context import api
 api.metrics("bracket-cadquery", width=90)      # -> dict of measurements
 part = api.build("bracket-build123d").native   # -> live build123d object
 api.compare(width=90)                          # -> cross-backend volumes
+api.compare(family="wing", twist=0)            # -> the same, for the wing loft
 ```
 
 Writing files is a separate, explicit decision: it happens through the
@@ -36,6 +37,7 @@ def generators() -> list[dict[str, Any]]:
             "title": spec.title,
             "kind": spec.kind,
             "backend": spec.backend,
+            "family": spec.family,
             "formats": list(spec.formats),
             "available": _backends.available(spec.backend),
             "description": spec.description,
@@ -66,17 +68,19 @@ def metrics(generator_id: str, **params: Any) -> dict[str, Any]:
     return build(generator_id, **params).metrics
 
 
-def compare(*, kind: str = "3d", **params: Any) -> dict[str, Any]:
-    """Build the reference part on every available backend and compare volumes.
+def compare(*, family: str = "bracket", **params: Any) -> dict[str, Any]:
+    """Build one family's part on every available backend and compare volumes.
 
-    Uses each kernel's own volume where it has one, and the analytic volume as
-    the reference. OpenSCAD has no in-process kernel, so it reports analytic
-    only unless the CLI renders and measures its STL.
+    Only generators of the same family are comparable: they build the same part
+    from the same parameters, so one analytic volume is the reference for all of
+    them. Uses each kernel's own volume where it has one; OpenSCAD has no
+    in-process kernel, so it reports analytic only unless the CLI renders and
+    measures its STL.
     """
     rows: dict[str, Any] = {}
     reference: float | None = None
-    for spec in _generators.SPECS:
-        if spec.kind != kind or not _backends.available(spec.backend):
+    for spec in _generators.family(family, kind="3d"):
+        if not _backends.available(spec.backend):
             continue
         result = build(spec.id, **params)
         volume = result.metrics.get("volume")
@@ -91,6 +95,7 @@ def compare(*, kind: str = "3d", **params: Any) -> dict[str, Any]:
     if measured and reference:
         deviation = max(abs(v - reference) / reference for v in measured)
     return {
+        "family": family,
         "params": params,
         "reference_volume": reference,
         "backends": rows,

@@ -93,7 +93,7 @@ def test_regenerating_reuses_the_same_paths():
 
 def test_compare_reports_cross_backend_agreement():
     run("compare", "--no-meshes")
-    payload = result_payload("compare")
+    payload = result_payload("compare-bracket")
     assert payload["data"]["within_tolerance"] is True
     assert payload["data"]["max_deviation"] < 0.01
 

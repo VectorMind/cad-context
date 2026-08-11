@@ -21,13 +21,24 @@ def cache(tmp_path, monkeypatch):
 
 
 def pytest_generate_tests(metafunc):
-    """Parametrise ``backend_3d`` over the 3D backends that are installed."""
-    if "generator_3d" in metafunc.fixturenames:
-        from cad_context import generators
+    """Parametrise a ``<family>_3d`` fixture over that family's installed backends.
 
-        ids = [
-            spec.id
-            for spec in generators.SPECS
-            if spec.kind == "3d" and backends.available(spec.backend)
-        ]
-        metafunc.parametrize("generator_3d", ids)
+    A test asking for ``bracket_3d`` runs once per 3D backend that builds the
+    bracket. Naming the family is the point: generators of different families
+    build different parts and have different reference values, so a test may
+    only sweep one of them.
+    """
+    from cad_context import generators
+
+    for name in generators.families():
+        fixture = f"{name}_3d"
+        if fixture not in metafunc.fixturenames:
+            continue
+        metafunc.parametrize(
+            fixture,
+            [
+                spec.id
+                for spec in generators.family(name, kind="3d")
+                if backends.available(spec.backend)
+            ],
+        )

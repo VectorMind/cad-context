@@ -114,6 +114,18 @@ main {
 .card.unavailable {
   opacity: 0.55;
 }
+.card.featured {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(110, 168, 254, 0.09), transparent);
+  margin-bottom: var(--space-5);
+}
+.home .section {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-3);
+}
 .tag {
   display: inline-block;
   padding: 0 var(--space-2);
@@ -315,6 +327,157 @@ main {
   flex: none;
 }
 
+/* --- airfoil page: two stages, one panel --------------------------------- */
+
+.stage-split {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+.stage-half {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.stage-half + .stage-half {
+  border-top: 1px solid var(--border);
+}
+.stage-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* The busy indicator OP-305 accepts in place of a fast approximate path. */
+.stage-spinner {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--warn);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  pointer-events: none;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-spinner {
+    animation-duration: 3s;
+  }
+}
+
+.stage-bar .backends {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.stage-bar .backends button {
+  border: none;
+  border-radius: 0;
+  padding: 1px var(--space-2);
+  color: var(--fg-muted);
+}
+.stage-bar .backends button + button {
+  border-left: 1px solid var(--border);
+}
+.stage-bar .backends button.selected {
+  background: rgba(110, 168, 254, 0.18);
+  color: var(--accent);
+}
+
+/* --- profile plot -------------------------------------------------------- */
+
+.profile-frame {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+.profile-frame:active {
+  cursor: grabbing;
+}
+.profile-plot {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.profile-grid line {
+  stroke: var(--plot-grid);
+  stroke-width: 1;
+}
+.profile-axis line {
+  stroke: var(--plot-axis);
+  stroke-width: 1;
+}
+.profile-labels text {
+  fill: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+.profile-curve {
+  fill: none;
+  stroke-width: 1.5;
+}
+.profile-curve.outline {
+  stroke: var(--plot-surface);
+  fill: var(--plot-surface-fill);
+}
+.profile-curve.camber {
+  stroke: var(--plot-camber);
+  stroke-dasharray: 6 4;
+}
+.profile-curve.chord_line {
+  stroke: var(--plot-axis);
+  stroke-dasharray: 2 4;
+}
+.profile-marker {
+  stroke: var(--plot-marker);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+}
+.profile-marker.max_camber {
+  fill: var(--plot-marker);
+}
+
+.viewport-toolbar .designation {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+.viewport-toolbar .spacer {
+  flex: 1;
+}
+.viewport-toolbar .legend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.viewport-toolbar .swatch {
+  width: 0.75rem;
+  height: 0;
+  border-top: 2px solid var(--fg-muted);
+}
+.viewport-toolbar .swatch.outline {
+  border-color: var(--plot-surface);
+}
+.viewport-toolbar .swatch.camber {
+  border-top-style: dashed;
+  border-color: var(--plot-camber);
+}
+.viewport-toolbar .swatch.max_thickness,
+.viewport-toolbar .swatch.max_camber {
+  border-color: var(--plot-marker);
+}
+
 @media (max-width: 60rem) {
   .workbench {
     grid-template-columns: 1fr;
@@ -323,5 +486,8 @@ main {
   .panel {
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+  .viewport-toolbar {
+    flex-wrap: wrap;
   }
 }

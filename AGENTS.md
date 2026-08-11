@@ -98,9 +98,14 @@ task could be solved by picking a winner, don't:
 - Shared behavior is defined by exchange formats (STEP, STL, GLB, SVG, DXF),
   never by one backend's object model. Nothing outside a backend module may
   interpret that backend's native objects.
-- The three bracket generators build the same part three ways on purpose. Keep
-  their constructions equivalent so the cross-backend volume comparison stays
-  meaningful.
+- The three bracket generators build the same part three ways on purpose, and
+  so do the two wing lofts. Keep the constructions inside a family equivalent —
+  compute the shared geometry once in `models.py` and let each backend only
+  drive its kernel — so the cross-backend volume comparison stays meaningful.
+- Where several real implementations exist, the web app offers all of them and
+  lets the user switch. Never ship a faster approximation in place of one: a
+  slow backend gets a spinner, not a stand-in
+  (`specifications/web-app/spec.md`).
 
 ## Adding A Generator
 
@@ -114,8 +119,13 @@ task could be solved by picking a winner, don't:
    and **writes nothing**. Import the CAD kernel inside `build`, never at module
    level.
 3. Register a `GeneratorSpec` in `src/cad_context/generators/__init__.py` with
-   its id, kind, backend, formats and description.
-4. Make sure `cad_context.exchange` can write every format you declared.
+   its id, kind, backend, formats, description and **family**. Generators that
+   build the same part on different backends share a family — that is what
+   `cadctx compare --family <name>` sweeps, and what lets the web app offer
+   them as a selector.
+4. Make sure `cad_context.exchange` can write every format you declared. If the
+   generator has curves worth plotting, publish a `payload` alongside `native`
+   and declare the `json` format; the exporter writes it verbatim.
 5. Add tests: the generator's measured output against the analytic reference,
    and an export round-trip that loads each file back.
 6. Update the generator table and, if you added a command, the command

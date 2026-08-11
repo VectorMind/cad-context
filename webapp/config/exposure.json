@@ -5,6 +5,38 @@
       "editable": ["width", "slot_count", "slot_width"],
       "preview": "svg"
     },
+    "airfoil": {
+      "editable": ["chord", "max_camber", "camber_position", "thickness", "trailing_edge"],
+      "preview": "json"
+    },
+    "wing-build123d": {
+      "editable": [
+        "chord",
+        "max_camber",
+        "camber_position",
+        "thickness",
+        "trailing_edge",
+        "span",
+        "taper",
+        "twist",
+        "sweep"
+      ],
+      "preview": "glb"
+    },
+    "wing-cadquery": {
+      "editable": [
+        "chord",
+        "max_camber",
+        "camber_position",
+        "thickness",
+        "trailing_edge",
+        "span",
+        "taper",
+        "twist",
+        "sweep"
+      ],
+      "preview": "glb"
+    },
     "bracket-cadquery": {
       "editable": ["width", "height", "hole_diameter"],
       "preview": "glb"

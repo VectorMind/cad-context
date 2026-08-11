@@ -281,6 +281,13 @@ def demo(
 def compare(
     ctx: typer.Context,
     param: ParamOption = None,
+    family: Annotated[
+        str,
+        typer.Option(
+            "--family",
+            help="Which part to compare across backends: bracket | wing",
+        ),
+    ] = "bracket",
     tolerance: Annotated[
         float, typer.Option("--tolerance", help="Max allowed relative deviation")
     ] = 0.01,
@@ -293,16 +300,15 @@ def compare(
         ),
     ] = True,
 ) -> None:
-    """Build the reference part on every 3D backend and compare volumes."""
+    """Build one family's part on every 3D backend and compare volumes."""
 
     def body() -> results.Result:
         overrides = parse_overrides(list(param or []))
+        specs = generators.family(family, kind="3d")
         rows: dict[str, Any] = {}
         reference: float | None = None
         notes: list[str] = []
-        for spec in generators.SPECS:
-            if spec.kind != "3d":
-                continue
+        for spec in specs:
             if not backends.available(spec.backend):
                 notes.append(f"{spec.id}: backend not installed")
                 continue
@@ -335,20 +341,19 @@ def compare(
         )
         within = deviation is not None and deviation <= tolerance
         return results.Result(
-            command="compare",
+            command=f"compare-{family}",
             status="ok" if within else "degraded",
             summary=(
-                f"{len(measured)} backends, max deviation {deviation:.4%} vs analytic "
-                f"(tolerance {tolerance:.1%})"
+                f"{family}: {len(measured)} backends, max deviation {deviation:.4%} "
+                f"vs analytic (tolerance {tolerance:.1%})"
                 if deviation is not None
-                else "no measurable backend available"
+                else f"{family}: no measurable backend available"
             ),
             facts=dict(measured) | {"analytic": reference},
             notes=notes,
             data={
-                "params": (
-                    generators.get("bracket-cadquery").parse(overrides).model_dump()
-                ),
+                "family": family,
+                "params": specs[0].parse(overrides).model_dump(),
                 "reference_volume": reference,
                 "tolerance": tolerance,
                 "backends": rows,
@@ -357,7 +362,7 @@ def compare(
             },
         )
 
-    _run(ctx, "compare", body)
+    _run(ctx, f"compare-{family}", body)
 
 
 @app.command()

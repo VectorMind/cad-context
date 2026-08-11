@@ -21,16 +21,16 @@ def _cache_files(root):
     return sorted(p for p in root.rglob("*") if p.is_file()) if root.exists() else []
 
 
-def test_api_build_writes_nothing(cache, generator_3d):
+def test_api_build_writes_nothing(cache, bracket_3d):
     before = _cache_files(cache)
-    result = api.build(generator_3d, width=90.0)
+    result = api.build(bracket_3d, width=90.0)
     assert result.native is not None
     assert result.params["width"] == 90.0
     assert _cache_files(cache) == before
 
 
-def test_kernel_volume_matches_the_analytic_reference(generator_3d):
-    metrics = api.metrics(generator_3d, width=90.0)
+def test_kernel_volume_matches_the_analytic_reference(bracket_3d):
+    metrics = api.metrics(bracket_3d, width=90.0)
     expected = bracket_volume(BracketParams(width=90.0))
     assert metrics["volume_analytic"] == pytest.approx(expected)
     if "volume" in metrics:  # OpenSCAD has no in-process kernel

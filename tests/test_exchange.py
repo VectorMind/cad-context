@@ -53,13 +53,13 @@ def test_2d_exports_round_trip(tmp_path):
     assert svg["has_viewbox"] and svg["paths"] == 1
 
 
-def test_3d_exports_round_trip_and_measure(tmp_path, generator_3d):
+def test_3d_exports_round_trip_and_measure(tmp_path, bracket_3d):
     params = {"width": 90.0}
-    build_result = api.build(generator_3d, **params)
+    build_result = api.build(bracket_3d, **params)
     spec_formats = [
         f
         for f in exchange.FORMAT_ORDER
-        if f in set(api.schema(generator_3d)["formats"])
+        if f in set(api.schema(bracket_3d)["formats"])
     ]
     exported = exchange.export(build_result, spec_formats, out_dir=tmp_path)
 
@@ -79,12 +79,12 @@ def test_3d_exports_round_trip_and_measure(tmp_path, generator_3d):
     assert glb["volume"] == pytest.approx(mesh["volume"], rel=1e-6)
 
 
-def test_glb_alone_tessellates_without_leaving_an_stl(tmp_path, generator_3d):
-    build_result = api.build(generator_3d)
+def test_glb_alone_tessellates_without_leaving_an_stl(tmp_path, bracket_3d):
+    build_result = api.build(bracket_3d)
     exported = exchange.export(build_result, ["glb"], out_dir=tmp_path)
 
     assert set(exported["files"]) == {"glb"}, exported["skipped"]
-    assert sorted(p.name for p in tmp_path.iterdir()) == [f"{generator_3d}.glb"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == [f"{bracket_3d}.glb"]
     assert exported["measurements"]["mesh"]["volume"] == pytest.approx(
         bracket_volume(BracketParams()), rel=VOLUME_TOLERANCE
     )

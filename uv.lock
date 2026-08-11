@@ -253,7 +253,7 @@ requires-dist = [
     { name = "trimesh", marker = "extra == 'mesh'" },
     { name = "typer" },
 ]
-provides-extras = ["cadquery", "build123d", "openscad", "mesh", "vector2d", "airfoil", "all"]
+provides-extras = ["cadquery", "build123d", "openscad", "mesh", "vector2d", "all"]
 
 [package.metadata.requires-dev]
 dev = [

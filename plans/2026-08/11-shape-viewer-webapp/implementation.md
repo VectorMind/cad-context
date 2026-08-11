@@ -73,6 +73,13 @@ and web-app rules in `AGENTS.md`.
   coordinates with no node transform (verified by reading the glTF JSON chunk),
   so the viewer centres the object and rotates it -90° about X into three.js's
   Y-up world.
+- **Shading.** The GLB primitives carry `POSITION` and indices only — no
+  `NORMAL` attribute — so every face shaded identically and a part rendered as
+  one flat silhouette. The viewer now flat-shades any mesh that arrives without
+  normals (three derives the true per-face normal in the shader, which is also
+  the right look for a faceted CAD part) and keeps a file's normals when it has
+  them. Lighting is a three-point rig plus a sky/ground hemisphere, so each
+  face picks up a different amount of light.
 
 ## Decisions Made During Development
 
@@ -122,6 +129,14 @@ and web-app rules in `AGENTS.md`.
 - The 3D viewer offers a wireframe toggle, not true B-rep edges — GLB from a
   tessellated mesh has no edge topology. `three-cad-viewer` remains the
   documented answer if edge fidelity becomes a requirement.
+- **The exported GLB still has no normals.** The viewer compensates, but any
+  other glTF consumer (3dviewer.net, `<model-viewer>`, Blender import) shows
+  the same flat surface this app used to. Fixing it at the source is a
+  one-argument change in `exchange/export3d.write_glb`
+  (`mesh.export(..., include_normals=True)`), but it needs a decision about
+  smooth versus per-face normals for a merged-vertex mesh — smooth normals
+  would round off the hard edges of a mechanical part. Left untouched here
+  because it is an exchange-format change, not a renderer one.
 - Only Chromium was exercised (headless, via a throwaway Playwright script in
   the scratchpad). No mobile or Safari pass.
 - The app assumes `uv` on PATH; `CADCTX_COMMAND` overrides the launcher for

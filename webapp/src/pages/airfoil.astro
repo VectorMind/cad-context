@@ -1,0 +1,53 @@
+---
+// The airfoil workflow on one page: the 2D profile and the 3D loft driven by
+// the same parameters. Both schemas are resolved on the server, so the island
+// starts from the real contracts instead of fetching them after hydration.
+import AirfoilWorkbench from '../components/AirfoilWorkbench.tsx';
+import Layout from '../layout/Layout.astro';
+import { listGenerators } from '../server/cadctx.ts';
+import { exposedSchema } from '../server/exposure.ts';
+
+export const prerender = false;
+
+const PROFILE = 'airfoil';
+
+let profile;
+let wings: { backend: string; schema: Awaited<ReturnType<typeof exposedSchema>> }[] = [];
+let error: string | null = null;
+
+try {
+  profile = await exposedSchema(PROFILE);
+  // Every installed backend that lofts the wing becomes a selector entry — the
+  // page never names them, so a third implementation joins by registering.
+  const available = (await listGenerators()).filter(
+    (generator) => generator.family === 'wing' && generator.available,
+  );
+  wings = await Promise.all(
+    available.map(async (generator) => ({
+      backend: generator.backend,
+      schema: await exposedSchema(generator.id),
+    })),
+  );
+} catch (cause) {
+  error = cause instanceof Error ? cause.message : String(cause);
+}
+
+const command = `uv run cadctx generate ${PROFILE} && uv run cadctx compare --family wing`;
+---
+
+<Layout title="Airfoil" crumb="airfoil + wing loft" command={command}>
+  {error && <p class="error banner">cadctx failed: {error}</p>}
+  {
+    profile && wings.length > 0 && (
+      <!-- client:only — three.js and leva are browser-only. -->
+      <AirfoilWorkbench client:only="react" profile={profile} wings={wings} />
+    )
+  }
+  {
+    profile && wings.length === 0 && !error && (
+      <p class="error banner">
+        No wing loft backend is installed — run <code>uv sync --extra all</code>.
+      </p>
+    )
+  }
+</Layout>

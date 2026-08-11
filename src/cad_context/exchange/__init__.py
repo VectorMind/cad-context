@@ -18,11 +18,12 @@ from . import export2d, export3d
 
 #: Formats that carry geometry, in the order they must be produced (GLB is
 #: derived from STL, so STL comes first).
-FORMAT_ORDER = ("svg", "dxf", "scad", "step", "stl", "glb")
+FORMAT_ORDER = ("svg", "dxf", "json", "scad", "step", "stl", "glb")
 
 FORMAT_KIND = {
     "svg": "2d",
     "dxf": "2d",
+    "json": "2d",
     "scad": "3d",
     "step": "3d",
     "stl": "3d",
@@ -69,6 +70,15 @@ def export(
                 export2d.write_svg(build_result.native, path)
             elif fmt == "dxf":
                 export2d.write_dxf(build_result.native, path)
+            elif fmt == "json":
+                if build_result.payload is None:
+                    # A generator that declares the format must publish one:
+                    # this is a wiring bug, not a missing prerequisite.
+                    raise ValueError(
+                        f"{build_result.generator!r} declares the json format "
+                        "but published no payload"
+                    )
+                export2d.write_json(build_result.payload, path)
             elif fmt == "scad":
                 export3d.write_scad(build_result, path)
             elif fmt == "step":
@@ -99,6 +109,8 @@ def export(
             measurements["dxf"] = export2d.read_dxf_metrics(files["dxf"])
         if "svg" in files:
             measurements["svg"] = export2d.read_svg_metrics(files["svg"])
+        if "json" in files:
+            measurements["json"] = export2d.read_json_metrics(files["json"])
 
     return {"files": files, "skipped": skipped, "measurements": measurements}
 

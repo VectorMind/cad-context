@@ -40,4 +40,12 @@
 
   --panel-width: 22rem;
   --header-height: 3rem;
+
+  /* Profile plot: one hue per role, so the legend needs no explaining. */
+  --plot-surface: #8ab4f8;
+  --plot-surface-fill: rgba(110, 168, 254, 0.14);
+  --plot-camber: #e8c26a;
+  --plot-marker: #6fd08c;
+  --plot-grid: #222a34;
+  --plot-axis: #3d4855;
 }

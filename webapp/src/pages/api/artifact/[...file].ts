@@ -21,6 +21,7 @@ const CONTENT_TYPES: Record<string, string> = {
   stl: 'model/stl',
   svg: 'image/svg+xml',
   dxf: 'image/vnd.dxf',
+  json: 'application/json',
   step: 'application/step',
   scad: 'text/plain; charset=utf-8',
 };

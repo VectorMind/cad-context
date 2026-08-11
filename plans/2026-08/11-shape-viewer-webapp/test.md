@@ -164,6 +164,21 @@ Camera behaviour checked visually across a regeneration: after dragging width
 from 80 mm to 300 mm the part stays framed at the user's orbit angle (distance
 rescales, angle preserved); **fit view** re-frames on demand.
 
+### Shading fix (2026-08-11, after maintainer review)
+
+The first pass rendered every part as a single flat silhouette. Cause, read
+straight out of the file: the GLB's only vertex attribute is `POSITION`
+(`primitives: [{"POSITION":1}]`, no `NORMAL`), so all faces shaded alike.
+
+Expected after the fix: adjacent faces of the L-bracket differ in tone, hole
+bores are visibly shaded, and the effect holds on every 3D backend. Actual —
+screenshots taken through an orbit on each backend, no console errors:
+`bracket-cadquery`, `bracket-build123d` and `bracket-openscad` all render the
+base plate, the web plate and the side face in three distinct tones, with
+shaded bores; the OpenSCAD part additionally shows its 96-facet cylinders as
+discrete segments, which is what it is. `pnpm check` 0 errors, `pnpm test` 3
+passed, `pnpm build` complete after the change.
+
 ## Known Gaps
 
 - Only headless Chromium was exercised; no Safari, Firefox, or touch pass.

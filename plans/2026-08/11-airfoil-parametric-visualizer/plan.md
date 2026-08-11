@@ -1,9 +1,12 @@
 # Plan: Airfoil Parametric Visualizer Integrated In The Web App
 
 Date: 2026-08-11
-Status: Approved — all open points accepted by the maintainer 2026-08-11
-(OP-301, OP-302, OP-303, OP-305 with amendments recorded below; excluded
-ideas captured in `exploration.md`). Sequenced after Plans 1 and 2: depends
+Status: **Implemented and proven 2026-08-11** — see `implementation.md` for
+what landed and `test.md` for the measurements. All open points were accepted
+by the maintainer 2026-08-11 (OP-301, OP-302, OP-303, OP-305 with amendments
+recorded below; excluded ideas captured in `exploration.md`), and the OP-305
+wisdom-level rule has been folded into `specifications/web-app/spec.md`.
+Sequenced after Plans 1 and 2: depends
 on Plan 1's generator env and Plan 2's viewer + parameter panel +
 regeneration bridge. This packet is also the first *real*
 stress test of both: a parameter-heavy generator with a live tweak loop.

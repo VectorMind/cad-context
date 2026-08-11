@@ -14,9 +14,15 @@ second implementation of anything the Python side already does:
   artifact — comes from a `cadctx … --json` subprocess spawned by a server-side
   handler. Client code never spawns anything and never reads the filesystem.
 - Geometry is consumed only through the exchange formats: GLB (or STL) for 3D,
-  SVG for 2D. No backend-native format and no in-browser geometry kernel — a
-  WASM CAD path in the browser is a rejected design, because it would fork the
-  geometry code path away from the backends the repository actually ships.
+  SVG for 2D, and the JSON coordinate payload where the page draws its own plot
+  rather than displaying a finished picture. No backend-native format and no
+  in-browser geometry kernel — a WASM CAD path in the browser is a rejected
+  design, because it would fork the geometry code path away from the backends
+  the repository actually ships.
+- A page that plots coordinates still owns no geometry: it maps the payload's
+  millimetres to screen coordinates and adds axes, overlays and annotations. It
+  does not evaluate a curve, resample one, or derive a point the generator did
+  not publish.
 - Parameter metadata (ranges, steps, units, descriptions) is read from the
   schema, never restated in the app.
 
@@ -36,6 +42,28 @@ declares, per generator, the small set of parameter names it exposes:
 
 The exposure list carries names only. It never carries a range, a unit, or a
 default — that would duplicate the parameter schema.
+
+## Real Implementations, Switchable — Never An Approximation
+
+Where a specification admits more than one real implementation, the app offers
+**all of them and lets the user switch**, so their outputs can be compared
+directly. It never offers a faster stand-in for one.
+
+- Multiple implementations of one part are exposed as a selector on the page,
+  not as a build-time choice and not as a generator parameter: the backend is a
+  property of the implementation, not of the shape.
+- **No approximation paths.** The app renders what a real generator produced.
+  A cheaper preview that is not a backend's own output — a mesh-level skin
+  standing in for a B-rep loft, a curve evaluated in the browser — is rejected
+  for the same reason an in-browser kernel is: it forks the geometry away from
+  what the repository ships, and the thing on screen stops being the thing that
+  exports.
+- **Latency is acceptable; wrongness is not.** Regeneration that takes seconds
+  is answered with a busy indicator, not with a faster approximation. The
+  debounced, latest-wins contract below already bounds the load, so a slow
+  backend costs waiting, never a queue.
+- A selector lists whichever implementations are installed, discovered from the
+  registry. Adding one is registering a generator, not editing the page.
 
 ## Regeneration Contract
 

@@ -44,12 +44,31 @@ function disposeObject(object: THREE.Object3D): void {
   });
 }
 
-function surfaceMaterial(): THREE.MeshStandardMaterial {
+function surfaceMaterial(flatShading: boolean): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
-    color: '#9fb4c7',
-    metalness: 0.15,
-    roughness: 0.55,
-    flatShading: false,
+    color: '#b7c4d1',
+    metalness: 0.25,
+    roughness: 0.42,
+    flatShading,
+  });
+}
+
+/**
+ * Give every mesh a lit surface.
+ *
+ * GLB written by trimesh carries positions and indices only — no NORMAL
+ * attribute — and a mesh without normals is shaded as if every face pointed
+ * the same way, which is what makes a part look like one flat silhouette.
+ * Where normals are missing, the material switches to flat shading: three
+ * derives the true per-face normal in the shader, which is also the right look
+ * for a faceted CAD part. A file that does carry normals keeps them.
+ */
+function applySurface(object: THREE.Object3D): void {
+  object.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const hasNormals = Boolean(mesh.geometry?.getAttribute('normal'));
+    mesh.material = surfaceMaterial(!hasNormals);
   });
 }
 
@@ -57,16 +76,12 @@ async function loadModel(url: string, format: string): Promise<Loaded> {
   let object: THREE.Object3D;
   if (format === 'stl') {
     const geometry = await new STLLoader().loadAsync(url);
-    geometry.computeVertexNormals();
-    object = new THREE.Mesh(geometry, surfaceMaterial());
+    object = new THREE.Mesh(geometry);
   } else {
     const gltf = await new GLTFLoader().loadAsync(url);
     object = gltf.scene;
-    object.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (mesh.isMesh) mesh.material = surfaceMaterial();
-    });
   }
+  applySurface(object);
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -184,9 +199,18 @@ export default function ModelView({ url, format, wireframe, showGrid, fitToken }
         gl={{ alpha: true, antialias: true }}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[1, 2, 1.5]} intensity={2.2} />
-        <directionalLight position={[-1.5, -0.5, -1]} intensity={0.6} />
+        {/*
+          Three-point rig plus a sky/ground hemisphere. Directional lights are
+          positioned in world space, so each face of a part picks up a
+          different amount of each one — that difference is what reads as
+          shape. Intensities are tuned against the flat-shaded metal surface
+          above; keep the key clearly dominant or the part flattens again.
+        */}
+        <hemisphereLight args={['#e6eefa', '#141922', 0.9]} />
+        <ambientLight intensity={0.18} />
+        <directionalLight position={[60, 90, 70]} intensity={2.6} />
+        <directionalLight position={[-80, 35, -40]} intensity={0.85} color="#a8c6ff" />
+        <directionalLight position={[10, -60, -70]} intensity={0.3} color="#ffe6cc" />
         {loaded && (
           <>
             <group rotation={[-Math.PI / 2, 0, 0]}>

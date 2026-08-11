@@ -42,6 +42,8 @@ export interface GeneratorSchema {
   title: string;
   kind: '2d' | '3d';
   backend: string;
+  /** Generators that build the same part on different backends share a family. */
+  family: string;
   formats: string[];
   description: string;
   parameters: ParameterSpec[];
@@ -52,6 +54,7 @@ export interface GeneratorInfo {
   title: string;
   kind: '2d' | '3d';
   backend: string;
+  family: string;
   formats: string[];
   available: boolean;
   description: string;

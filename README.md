@@ -5,6 +5,10 @@ from Python, with several CAD backends kept alive side by side (CadQuery *and*
 build123d *and* OpenSCAD *and* shapely), all speaking the same exchange
 formats — STEP, STL, glTF/GLB, SVG, DXF.
 
+Ships with a parametric airfoil and wing loft as the worked example: drag the
+camber, watch the profile and the 3D wing follow, and switch which kernel built
+the loft. See [The Airfoil Workflow](#the-airfoil-workflow).
+
 Everything is driven by one command, `cadctx`. There is nothing else to learn.
 
 ---
@@ -17,7 +21,29 @@ these files alone. Paste any of these prompts:
 > **"Generate the demo bracket in all three 3D backends and tell me whether
 > their volumes agree."**
 > The agent runs `cadctx demo` and `cadctx compare`, then reads the numbers out
-> of `.cache/results/compare.json`.
+> of `.cache/results/compare-bracket.json`.
+
+> **"Give me a NACA 2412 with a 200 mm chord as SVG and DXF."**
+> `cadctx generate airfoil -p chord=200`. Camber, its position and the
+> thickness are separate sliders, so `-p max_camber=4 -p thickness=15` is a
+> 4415 and anything between the named profiles works too.
+
+> **"Loft that airfoil into a 400 mm wing with 20° of sweep and 4° of washout,
+> in both kernels, and check they agree."**
+> `cadctx generate wing-build123d -p span=400 -p sweep=20 -p twist=-4`, the same
+> for `wing-cadquery`, then `cadctx compare --family wing`. The two lofts are
+> the same construction driven through two kernels — comparing them is the
+> point.
+
+> **"How much does thickening the airfoil from 12% to 18% change its area?"**
+> The agent asks `api.metrics("airfoil", thickness=12)` and again at 18, without
+> writing a single file.
+
+> **"Open the airfoil page so I can drag the camber around and watch the wing
+> follow."**
+> `cadctx web`, then `/airfoil`: one parameter panel, the profile plotted from
+> the generator's own coordinates, and the lofted wing beside it with a switch
+> between the build123d and CadQuery lofts.
 
 > **"Make the bracket 120 mm wide with 10 mm holes and regenerate the GLB."**
 > `cadctx generate bracket-cadquery -p width=120 -p hole_diameter=10`. The GLB
@@ -104,7 +130,15 @@ ok web — serving http://127.0.0.1:4321/ (5/5 backends ready)
 ```
 
 Open the URL, pick a generator, drag a slider: the shape regenerates and the
-measured volume or area updates next to it.
+measured volume or area updates next to it. `/airfoil` is the combined page —
+profile plot and lofted wing on one panel, with a selector to switch which
+kernel builds the loft.
+
+**Where two real implementations exist, you get both.** The loft backend is a
+switch on the page, not a build-time decision, so you can compare their output
+directly. There is no faster approximate path behind it: a B-rep loft takes a
+few seconds, and the page answers that with a spinner rather than with
+something that is not what would export.
 
 **Both halves are running, and this is how they meet.** There is no separate
 Python service — a page's backend is an Astro SSR handler that shells out to
@@ -199,14 +233,17 @@ uv run cadctx demo
 uv run cadctx demo --only build123d
 ```
 
-### `cadctx compare [-p key=value] [--tolerance 0.01]`
+### `cadctx compare [--family bracket|wing] [-p key=value] [--tolerance 0.01]`
 
-Build the reference bracket on every installed 3D backend and compare their
-volumes against the analytic value. `--no-meshes` compares kernel volumes only
-(faster, but skips OpenSCAD, which has no in-process kernel).
+Build one part on every installed backend that makes it, and compare their
+volumes against the analytic value. Generators that build the same part share a
+*family* — that is the unit of comparison, since an analytic reference belongs
+to a part. `--no-meshes` compares kernel volumes only (faster, but skips
+OpenSCAD, which has no in-process kernel).
 
 ```bash
-uv run cadctx compare -p width=120
+uv run cadctx compare -p width=120           # the bracket, three backends
+uv run cadctx compare --family wing -p twist=0
 ```
 
 ### `cadctx fetch [name] [--all] [--list] [--force]`
@@ -269,15 +306,56 @@ Files appear only when you ask for them — through `cadctx`, or explicitly via
 
 ## What Ships Today
 
-| Generator | Backend | Kind | Formats |
-| --- | --- | --- | --- |
-| `plate2d` | shapely | 2D | SVG, DXF |
-| `bracket-cadquery` | CadQuery | 3D | STEP, STL, GLB |
-| `bracket-build123d` | build123d | 3D | STEP, STL, GLB |
-| `bracket-openscad` | OpenSCAD | 3D | SCAD, STL, GLB |
+| Generator | Family | Backend | Kind | Formats |
+| --- | --- | --- | --- | --- |
+| `plate2d` | plate | shapely | 2D | SVG, DXF |
+| `airfoil` | airfoil | shapely | 2D | SVG, DXF, JSON |
+| `bracket-cadquery` | bracket | CadQuery | 3D | STEP, STL, GLB |
+| `bracket-build123d` | bracket | build123d | 3D | STEP, STL, GLB |
+| `bracket-openscad` | bracket | OpenSCAD | 3D | SCAD, STL, GLB |
+| `wing-build123d` | wing | build123d | 3D | STEP, STL, GLB |
+| `wing-cadquery` | wing | CadQuery | 3D | STEP, STL, GLB |
 
-The three bracket generators build the *same* part three ways on purpose —
-comparing backends is the point, not choosing one.
+Generators of one **family** build the *same* part on different backends —
+comparing them is the point, not choosing one. `cadctx compare --family wing`
+sweeps a family; the three brackets and the two wing lofts are each held
+deliberately equivalent so those numbers mean something.
+
+---
+
+## The Airfoil Workflow
+
+A worked example of the whole loop: parameters → 2D profile → 3D loft →
+browser.
+
+```bash
+uv run cadctx generate airfoil -p max_camber=4 -p thickness=15 -p chord=200
+uv run cadctx generate wing-build123d -p span=400 -p sweep=20 -p twist=-4
+uv run cadctx compare --family wing -p twist=0
+```
+
+`airfoil` is the NACA 4-digit family with the four digits as continuous knobs —
+`max_camber`, `camber_position`, `thickness` in per cent of chord — so a slider
+moves smoothly *between* the named profiles and the result file reports which
+one you landed on (`NACA 2412`, or `NACA 2412 (nearest)` when you are between
+them). The coordinates are checked against the published ordinate tables, not
+against themselves: NACA 0012 matches Abbott & von Doenhoff to 0.0006% chord.
+
+Besides SVG and DXF it writes a third artifact — a small **JSON coordinate
+payload**: the outline, the camber line, and the markers for maximum thickness
+and camber, in millimetres on the airfoil's own datum. That is what the web
+page plots, so the browser draws the generator's points instead of deriving its
+own.
+
+`wing-build123d` and `wing-cadquery` loft that profile into a straight-taper
+wing (`span`, `taper`, `twist`, `sweep`), each section scaled by the local
+chord and rotated about its quarter-chord. Both build the *same* section wires
+and differ only in the kernel driving the loft — at zero twist they match the
+closed-form volume to 1e-15, and they agree with each other everywhere else.
+
+In the browser, `/airfoil` puts both on one page: the profile plot and the
+lofted wing driven by a single parameter panel, with a switch between the two
+loft backends. Profile knobs regenerate both shapes; wing knobs only the loft.
 
 ## Development
 

@@ -27,6 +27,20 @@ try {
 
     {error && <p class="error">cadctx failed: {error}</p>}
 
+    <a class="card featured" href="/airfoil">
+      <h2>Airfoil + wing loft</h2>
+      <p class="meta">
+        <span class="tag">2d + 3d</span> shapely · build123d · CadQuery
+      </p>
+      <p class="knobs">
+        One panel, two shapes: the NACA profile plotted from its coordinates, and the
+        same profile lofted into a wing — with a selector to switch which kernel builds
+        the loft and compare them.
+      </p>
+    </a>
+
+    <h2 class="section">One generator at a time</h2>
+
     <div class="cards">
       {
         generators.map((generator) => {

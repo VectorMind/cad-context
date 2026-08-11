@@ -1,10 +1,11 @@
-"""2D exchange formats: SVG (drawsvg) and DXF (ezdxf).
+"""2D exchange formats: SVG (drawsvg), DXF (ezdxf) and the JSON coordinate payload.
 
-Contract: millimetre units, Y up, origin at the part's own frame origin.
+Contract: millimetre units, Y up, origin at the part's own declared datum.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -106,4 +107,30 @@ def read_svg_metrics(path: Path) -> dict[str, Any]:
         "bytes": len(text),
         "paths": text.count("<path"),
         "has_viewbox": "viewBox" in text,
+    }
+
+
+def write_json(payload: dict[str, Any], path: Path) -> Path:
+    """Write a generator's coordinate payload verbatim.
+
+    The payload is already plain data in millimetres on the part's datum — this
+    writer adds nothing and interprets nothing, so a consumer drawing the curves
+    is reading the generator, not a viewer's idea of the geometry.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    return path
+
+
+def read_json_metrics(path: Path) -> dict[str, Any]:
+    """Round-trip check for a written coordinate payload: reload and count."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    curves = payload.get("curves", [])
+    return {
+        "bytes": path.stat().st_size,
+        "curves": len(curves),
+        "points": sum(len(curve.get("points", [])) for curve in curves),
+        "markers": len(payload.get("markers", [])),
+        "bounds": payload.get("bounds", []),
+        "units": payload.get("units", ""),
     }

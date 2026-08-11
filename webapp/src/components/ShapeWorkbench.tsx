@@ -12,9 +12,10 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useRegeneration } from './useRegeneration.ts';
 
 // Split so a 2D page never downloads three.js (and a 3D page never downloads
-// the SVG stage). Both are viewport-sized, so the fallback is just the frame.
+// the SVG stage). All are viewport-sized, so the fallback is just the frame.
 const ModelView = lazy(() => import('./ModelView.tsx'));
 const SvgView = lazy(() => import('./SvgView.tsx'));
+const ProfileView = lazy(() => import('./ProfileView.tsx'));
 
 export interface ParameterSpec {
   name: string;
@@ -154,7 +155,7 @@ export default function ShapeWorkbench({ schema }: { schema: WorkbenchSchema }) 
             {state.stats.discarded} stale
           </span>
           <span className="spacer" />
-          {schema.preview !== 'svg' && (
+          {schema.preview !== 'svg' && schema.preview !== 'json' && (
             <>
               <label>
                 <input
@@ -187,6 +188,10 @@ export default function ShapeWorkbench({ schema }: { schema: WorkbenchSchema }) 
         <Suspense fallback={<div className="viewport" />}>
           {schema.preview === 'svg' ? (
             <SvgView url={artifactUrl} />
+          ) : schema.preview === 'json' ? (
+            // A coordinate payload is drawn, not displayed: the plot component
+            // owns the axes and overlays a file viewer cannot give.
+            <ProfileView url={artifactUrl} busy={state.busy} />
           ) : (
             <ModelView
               url={artifactUrl}
