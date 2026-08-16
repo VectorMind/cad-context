@@ -17,17 +17,28 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 
-from . import artifacts, backends, exchange, generators, results, web, workspace
+from . import (
+    artifacts,
+    backends,
+    exchange,
+    generators,
+    projects,
+    results,
+    web,
+    workspace,
+)
 from .params import parse_overrides
 
 app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
     help=(
-        "cad-context CLI — generate 2D/3D geometry with multiple CAD backends. "
-        "Output goes to .cache/ (results, reports, cad); the console stays quiet."
+        "cad-context CLI — generate and verify project-oriented 2D/3D geometry. "
+        "Operational output goes to .cache/; the console stays quiet."
     ),
 )
+project_app = typer.Typer(help="Initialize, select, inspect, or clear a model project.")
+app.add_typer(project_app, name="project")
 console = Console()
 
 ParamOption = Annotated[
@@ -49,7 +60,24 @@ def main_options(
     quiet: Annotated[
         bool, typer.Option("--quiet", "-q", help="Print only the result file path")
     ] = False,
+    project: Annotated[
+        Path | None,
+        typer.Option(
+            "--project",
+            help="Use this initialized model project for the command",
+        ),
+    ] = None,
+    no_project: Annotated[
+        bool,
+        typer.Option(
+            "--no-project",
+            help="Ignore the environment and persisted active project",
+        ),
+    ] = False,
 ) -> None:
+    if project is not None and no_project:
+        raise typer.BadParameter("--project and --no-project are mutually exclusive")
+    projects.configure_command_project(project, disabled=no_project)
     ctx.obj = {"json": json_out, "quiet": quiet}
 
 
@@ -99,6 +127,7 @@ def info(ctx: typer.Context) -> None:
             summary=f"{len(ready)}/{len(rows)} backends available",
             facts={
                 "python": sys.version.split()[0],
+                "active_project": workspace.layout()["active_project"],
                 "backends_ready": ready,
                 "backends_missing": missing or "none",
                 "binaries": [
@@ -177,7 +206,7 @@ def generate(
     out_dir: Annotated[
         Path | None,
         typer.Option(
-            "--out-dir", help="Override the fixed .cache/cad/<generator>/ path"
+            "--out-dir", help="Override the generator's fixed artifact path"
         ),
     ] = None,
     measure: Annotated[
@@ -185,7 +214,7 @@ def generate(
         typer.Option("--measure/--no-measure", help="Load exports back and measure"),
     ] = True,
 ) -> None:
-    """Generate one shape and export it to the fixed .cache/cad path."""
+    """Generate one shape and export it to its fixed artifact root."""
 
     def body() -> results.Result:
         spec = generators.get(generator)
@@ -204,12 +233,15 @@ def generate(
             facts["mesh_volume"] = mesh["volume"]
             facts["watertight"] = mesh["watertight"]
         status = "degraded" if exported["skipped"] else "ok"
+        files = [workspace.rel(p) for p in exported["files"].values()]
+        if exported["measurement_file"] is not None:
+            files.append(workspace.rel(exported["measurement_file"]))
         return results.Result(
             command=f"generate-{generator}",
             status=status,
             summary=f"{len(exported['files'])} artifact(s) from {spec.backend}",
             facts=facts,
-            files=[workspace.rel(p) for p in exported["files"].values()],
+            files=files,
             notes=[f"skipped {k}: {v}" for k, v in exported["skipped"].items()],
             data={
                 "params": params.model_dump(),
@@ -217,6 +249,11 @@ def generate(
                 "files": {k: workspace.rel(v) for k, v in exported["files"].items()},
                 "measurements": exported["measurements"],
                 "skipped": exported["skipped"],
+                "measurement_file": (
+                    workspace.rel(exported["measurement_file"])
+                    if exported["measurement_file"] is not None
+                    else None
+                ),
             },
         )
 
@@ -238,7 +275,7 @@ def demo(
         runs: dict[str, Any] = {}
         files: list[str] = []
         notes: list[str] = []
-        for spec in generators.SPECS:
+        for spec in generators.specs():
             if only and spec.backend != only:
                 continue
             if not backends.available(spec.backend):
@@ -249,7 +286,7 @@ def demo(
                 {
                     k: v
                     for k, v in overrides.items()
-                    if k in spec.params_model.model_fields
+                    if k in spec.parameter_model().model_fields
                 }
             )
             exported = exchange.export(build_result, list(spec.formats))
@@ -278,91 +315,107 @@ def demo(
 
 
 @app.command()
-def compare(
+def verify(
     ctx: typer.Context,
+    generator: Annotated[str, typer.Argument(help="Generator id")],
     param: ParamOption = None,
-    family: Annotated[
-        str,
-        typer.Option(
-            "--family",
-            help="Which part to compare across backends: bracket | wing",
-        ),
-    ] = "bracket",
     tolerance: Annotated[
-        float, typer.Option("--tolerance", help="Max allowed relative deviation")
-    ] = 0.01,
-    meshes: Annotated[
-        bool,
+        float,
         typer.Option(
-            "--meshes/--no-meshes",
-            help="Also export and measure each backend's STL (needed for OpenSCAD, "
-            "which has no in-process kernel)",
+            "--tolerance",
+            help="Relative tolerance for tessellated or approximate references",
         ),
-    ] = True,
+    ] = 0.01,
 ) -> None:
-    """Build one family's part on every 3D backend and compare volumes."""
+    """Prove one generator against its analytic and exchange-format contracts."""
 
     def body() -> results.Result:
+        spec = generators.get(generator)
         overrides = parse_overrides(list(param or []))
-        specs = generators.family(family, kind="3d")
-        rows: dict[str, Any] = {}
-        reference: float | None = None
-        notes: list[str] = []
-        for spec in specs:
-            if not backends.available(spec.backend):
-                notes.append(f"{spec.id}: backend not installed")
-                continue
-            params = spec.parse(overrides)
-            build_result = spec.build(params)
-            reference = reference or build_result.metrics.get("volume_analytic")
-            row: dict[str, Any] = {
-                "backend": spec.backend,
-                "kernel_volume": build_result.metrics.get("volume"),
-                "mesh_volume": None,
-            }
-            if meshes:
-                exported = exchange.export(build_result, ["stl"], measure=True)
-                mesh = exported["measurements"].get("mesh")
-                if mesh:
-                    row["mesh_volume"] = mesh["volume"]
-                    row["watertight"] = mesh["watertight"]
-                for fmt, why in exported["skipped"].items():
-                    notes.append(f"{spec.id}: {fmt} skipped — {why}")
-            row["volume"] = row["kernel_volume"] or row["mesh_volume"]
-            rows[spec.id] = row
+        params = spec.parse(overrides)
+        build_result = spec.build(params)
+        exported = exchange.export(build_result, list(spec.formats), measure=True)
+        metrics = build_result.metrics
+        reference_key = "area_analytic" if spec.kind == "2d" else "volume_analytic"
+        native_key = "area" if spec.kind == "2d" else "volume"
+        reference = metrics.get(reference_key)
+        native = metrics.get(native_key)
+        exact_reference = bool(metrics.get("reference_exact", spec.kind == "3d"))
+        native_tolerance = 1e-6 if exact_reference and spec.kind == "3d" else tolerance
 
-        measured = {
-            gid: row["volume"] for gid, row in rows.items() if row["volume"] is not None
-        }
-        deviation = (
-            max(abs(v - reference) / reference for v in measured.values())
-            if measured and reference
-            else None
-        )
-        within = deviation is not None and deviation <= tolerance
+        def close(actual: Any, expected: Any, allowed: float) -> bool:
+            if actual is None or expected in (None, 0):
+                return False
+            deviation = abs(float(actual) - float(expected)) / abs(float(expected))
+            return deviation <= allowed
+
+        checks: dict[str, bool] = {"analytic_reference_present": reference is not None}
+        if native is not None:
+            checks["native_matches_analytic"] = close(
+                native, reference, native_tolerance
+            )
+        measured = exported["measurements"]
+        if "mesh" in measured:
+            mesh = measured["mesh"]
+            checks["mesh_watertight"] = bool(mesh["watertight"])
+            checks["mesh_matches_reference"] = close(
+                mesh["volume"], reference, tolerance
+            )
+        if "step" in measured:
+            checks["step_matches_native"] = close(
+                measured["step"]["volume"], native, 1e-6
+            )
+        if "dxf" in measured:
+            checks["dxf_units_mm"] = measured["dxf"]["units_name"] == "mm"
+            checks["dxf_has_geometry"] = measured["dxf"]["vertices"] > 0
+        if "svg" in measured:
+            checks["svg_has_geometry"] = bool(
+                measured["svg"]["has_viewbox"] and measured["svg"]["paths"]
+            )
+        if "json" in measured:
+            checks["json_has_geometry"] = bool(
+                measured["json"]["points"] and measured["json"]["units"] == "mm"
+            )
+
+        failed = [name for name, passed in checks.items() if not passed]
+        notes = [f"skipped {fmt}: {why}" for fmt, why in exported["skipped"].items()]
+        if not exact_reference:
+            notes.append("analytic reference is approximate for these parameters")
+        status = "error" if failed else ("degraded" if exported["skipped"] else "ok")
+        files = [workspace.rel(path) for path in exported["files"].values()]
+        if exported["measurement_file"] is not None:
+            files.append(workspace.rel(exported["measurement_file"]))
         return results.Result(
-            command=f"compare-{family}",
-            status="ok" if within else "degraded",
-            summary=(
-                f"{family}: {len(measured)} backends, max deviation {deviation:.4%} "
-                f"vs analytic (tolerance {tolerance:.1%})"
-                if deviation is not None
-                else f"{family}: no measurable backend available"
-            ),
-            facts=dict(measured) | {"analytic": reference},
+            command=f"verify-{generator}",
+            status=status,
+            summary=f"{len(checks) - len(failed)}/{len(checks)} checks passed",
+            facts={
+                "backend": spec.backend,
+                "reference": reference,
+                "native": native,
+                "checks_passed": len(checks) - len(failed),
+                "checks_failed": len(failed),
+            },
+            files=files,
             notes=notes,
             data={
-                "family": family,
-                "params": specs[0].parse(overrides).model_dump(),
-                "reference_volume": reference,
+                "generator": generator,
+                "kind": spec.kind,
+                "params": params.model_dump(),
+                "reference": reference,
+                "native": native,
+                "reference_exact": exact_reference,
                 "tolerance": tolerance,
-                "backends": rows,
-                "max_deviation": deviation,
-                "within_tolerance": within,
+                "checks": checks,
+                "measurements": measured,
+                "files": {
+                    fmt: workspace.rel(path) for fmt, path in exported["files"].items()
+                },
+                "skipped": exported["skipped"],
             },
         )
 
-    _run(ctx, f"compare-{family}", body)
+    _run(ctx, f"verify-{generator}", body)
 
 
 @app.command()
@@ -422,6 +475,93 @@ def fetch(
     _run(ctx, "fetch", body)
 
 
+@project_app.command("init")
+def project_init(
+    ctx: typer.Context,
+    path: Annotated[Path, typer.Argument(help="Folder to initialize")],
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Report the scaffold without writing it"),
+    ] = False,
+) -> None:
+    """Initialize a project folder without overwriting an existing manifest."""
+
+    def body() -> results.Result:
+        payload = projects.initialise(path, dry_run=dry_run)
+        return results.Result(
+            command="project-init",
+            status="ok",
+            summary=("project scaffold preview" if dry_run else "project initialized"),
+            facts={"project": payload["project"], "dry_run": dry_run},
+            files=[] if dry_run else [payload["manifest"]],
+            data=payload,
+        )
+
+    _run(ctx, "project-init", body)
+
+
+@project_app.command("use")
+def project_use(
+    ctx: typer.Context,
+    path: Annotated[Path, typer.Argument(help="Initialized project folder")],
+) -> None:
+    """Persist the active project for subsequent commands."""
+
+    def body() -> results.Result:
+        selected = projects.persist(path)
+        payload = projects.describe(selected)
+        return results.Result(
+            command="project-use",
+            status="ok",
+            summary=f"active project: {payload['name']}",
+            facts={"project": str(selected)},
+            data=payload,
+        )
+
+    _run(ctx, "project-use", body)
+
+
+@project_app.command("clear")
+def project_clear(ctx: typer.Context) -> None:
+    """Clear the persisted project pointer."""
+
+    def body() -> results.Result:
+        removed = projects.clear()
+        return results.Result(
+            command="project-clear",
+            status="ok",
+            summary="active project cleared" if removed else "no persisted project",
+            facts={"removed": removed},
+            data={"removed": removed},
+        )
+
+    _run(ctx, "project-clear", body)
+
+
+@project_app.command("info")
+def project_info(ctx: typer.Context) -> None:
+    """Report the active project without importing generator modules."""
+
+    def body() -> results.Result:
+        payload = projects.describe()
+        return results.Result(
+            command="project-info",
+            status="ok",
+            summary=(
+                f"active project: {payload['name']}"
+                if payload["active"]
+                else "repository mode"
+            ),
+            facts={
+                "active": payload["active"],
+                "project": payload.get("project") or "none",
+            },
+            data=payload,
+        )
+
+    _run(ctx, "project-info", body)
+
+
 @app.command("web")
 def web_command(
     ctx: typer.Context,
@@ -448,7 +588,14 @@ def web_command(
         rows = backends.status()
         ready = [r["backend"] for r in rows if r["available"]]
         missing = [r["backend"] for r in rows if not r["available"]]
-        started = web.start(directory, log, host=host, port=port)
+        active_project = projects.active_path()
+        started = web.start(
+            directory,
+            log,
+            host=host,
+            port=port,
+            project=active_project,
+        )
         server["handle"] = started
         return results.Result(
             command="web",
@@ -459,6 +606,7 @@ def web_command(
                 "webapp": workspace.rel(directory),
                 "backends_ready": ready,
                 "backends_missing": missing or "none",
+                "active_project": str(active_project) if active_project else "none",
                 "generators": f"{started.url}api/generators.json",
             },
             report=workspace.rel(log),
@@ -472,6 +620,7 @@ def web_command(
                 "webapp": workspace.rel(directory),
                 "log": workspace.rel(log),
                 "backends": rows,
+                "active_project": str(active_project) if active_project else None,
             },
         )
 
@@ -488,7 +637,7 @@ def web_command(
 
 @app.command()
 def paths(ctx: typer.Context) -> None:
-    """Print the workspace layout (.cache/results, .cache/reports, .cache/cad)."""
+    """Print operational, project, and fixed per-generator paths."""
 
     def body() -> results.Result:
         layout = workspace.layout()
@@ -504,7 +653,7 @@ def paths(ctx: typer.Context) -> None:
                         f: workspace.rel(exchange.destination(spec.id, f))
                         for f in spec.formats
                     }
-                    for spec in generators.SPECS
+                    for spec in generators.specs()
                 },
             },
         )

@@ -17,7 +17,12 @@ import { join } from 'node:path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { generatorSchema, type GeneratorSchema, type ParameterSpec } from './cadctx.ts';
+import {
+  generatorSchema,
+  type GeneratorInfo,
+  type GeneratorSchema,
+  type ParameterSpec,
+} from './cadctx.ts';
 
 export interface GeneratorExposure {
   editable: string[];
@@ -46,6 +51,18 @@ export function exposureFor(generatorId: string): GeneratorExposure {
   return exposureFile().generators[generatorId] ?? { editable: [] };
 }
 
+export function effectiveExposure(
+  generator: Pick<GeneratorInfo, 'id' | 'origin' | 'exposure'>,
+): GeneratorExposure {
+  if (generator.origin === 'project' && generator.exposure) {
+    return {
+      editable: generator.exposure.editable,
+      preview: generator.exposure.preview ?? undefined,
+    };
+  }
+  return exposureFor(generator.id);
+}
+
 /** Preview format: the configured one, else GLB for 3D and SVG for 2D. */
 export function previewFormat(schema: GeneratorSchema, exposure: GeneratorExposure): string {
   const wanted = exposure.preview ?? (schema.kind === '2d' ? 'svg' : 'glb');
@@ -67,7 +84,11 @@ export interface ExposedSchema {
 
 export async function exposedSchema(generatorId: string): Promise<ExposedSchema> {
   const schema = await generatorSchema(generatorId);
-  const exposure = exposureFor(generatorId);
+  const exposure = effectiveExposure({
+    id: generatorId,
+    origin: schema.origin,
+    exposure: schema.exposure,
+  });
   const editable = new Set(exposure.editable);
   const known = new Set(schema.parameters.map((p) => p.name));
   for (const name of editable) {

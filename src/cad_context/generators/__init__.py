@@ -1,14 +1,10 @@
-"""Generator registry.
-
-Every generator is declared here with its parameter model and its formats.
-Builder modules are imported lazily so that listing generators, printing a
-parameter schema, or probing the environment never pays an OCCT import.
-"""
+"""Generator registry with lazy built-in and project module loading."""
 
 from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from ..params import ShapeParams, describe
@@ -20,28 +16,67 @@ from .models import AirfoilParams, BracketParams, PlateParams, WingParams
 class GeneratorSpec:
     id: str
     title: str
-    kind: str  # "2d" | "3d"
+    kind: str
     backend: str
     module: str
-    params_model: type[ShapeParams]
+    params_model: type[ShapeParams] | None
     formats: tuple[str, ...]
+    params_class: str = ""
     description: str = ""
-    #: Generators that build the *same* part on different backends share a
-    #: family. It is what makes a cross-backend comparison meaningful: only
-    #: generators of one family may be compared against one analytic reference.
     family: str = ""
+    origin: str = "builtin"
+    project_root: Path | None = None
+    artifact_root: Path | None = None
+    parameter_defaults: dict[str, Any] | None = None
+    exposure: dict[str, Any] | None = None
+    project_name: str | None = None
+
+    def _module(self):
+        if self.project_root is not None:
+            from ..projects import import_project_module
+
+            return import_project_module(self.project_root, self.module)
+        return importlib.import_module(self.module)
+
+    def parameter_model(self) -> type[ShapeParams]:
+        model = self.params_model
+        if model is None:
+            model = getattr(self._module(), self.params_class, None)
+        if not isinstance(model, type) or not issubclass(model, ShapeParams):
+            raise TypeError(
+                f"{self.id!r} parameter model {self.params_class!r} "
+                "must inherit ShapeParams"
+            )
+        return model
 
     def parse(self, overrides: dict[str, Any] | None = None) -> ShapeParams:
-        return self.params_model(**(overrides or {}))
+        values = dict(self.parameter_defaults or {})
+        values.update(overrides or {})
+        return self.parameter_model()(**values)
 
     def build(self, params: ShapeParams | dict[str, Any] | None = None) -> BuildResult:
         if params is None or isinstance(params, dict):
             params = self.parse(params)
-        module = importlib.import_module(self.module)
-        return module.build(params)
+        result = self._module().build(params)
+        if result.generator != self.id:
+            raise ValueError(
+                f"generator {self.id!r} returned BuildResult for {result.generator!r}"
+            )
+        if result.backend != self.backend or result.kind != self.kind:
+            raise ValueError(
+                f"generator {self.id!r} returned backend/kind "
+                f"{result.backend!r}/{result.kind!r}, expected "
+                f"{self.backend!r}/{self.kind!r}"
+            )
+        return result
 
     def schema(self) -> dict[str, Any]:
-        payload = describe(self.params_model, generator=self.id)
+        from .. import workspace
+
+        payload = describe(self.parameter_model(), generator=self.id)
+        defaults = self.parse().model_dump()
+        for parameter in payload["parameters"]:
+            parameter["default"] = defaults[parameter["name"]]
         payload.update(
             {
                 "title": self.title,
@@ -50,12 +85,18 @@ class GeneratorSpec:
                 "family": self.family,
                 "formats": list(self.formats),
                 "description": self.description,
+                "origin": self.origin,
+                "project": self.project_name,
+                "artifact_root": str(
+                    (self.artifact_root or workspace.cad_dir()).resolve()
+                ),
+                "exposure": self.exposure,
             }
         )
         return payload
 
 
-SPECS: tuple[GeneratorSpec, ...] = (
+BUILTIN_SPECS: tuple[GeneratorSpec, ...] = (
     GeneratorSpec(
         id="plate2d",
         title="Slotted plate (2D)",
@@ -76,21 +117,9 @@ SPECS: tuple[GeneratorSpec, ...] = (
         params_model=AirfoilParams,
         formats=("svg", "dxf", "json"),
         description=(
-            "Parametric airfoil section; the JSON artifact carries the plot "
-            "coordinates, camber line and thickness marker."
+            "Parametric airfoil section; JSON carries plot coordinates and markers."
         ),
         family="airfoil",
-    ),
-    GeneratorSpec(
-        id="bracket-cadquery",
-        title="Flanged bracket (CadQuery)",
-        kind="3d",
-        backend="cadquery",
-        module="cad_context.generators.bracket_cadquery",
-        params_model=BracketParams,
-        formats=("step", "stl", "glb"),
-        description="Reference L-bracket built with CadQuery's OCCT kernel.",
-        family="bracket",
     ),
     GeneratorSpec(
         id="bracket-build123d",
@@ -100,18 +129,7 @@ SPECS: tuple[GeneratorSpec, ...] = (
         module="cad_context.generators.bracket_build123d",
         params_model=BracketParams,
         formats=("step", "stl", "glb"),
-        description="The same reference L-bracket in build123d's algebra API.",
-        family="bracket",
-    ),
-    GeneratorSpec(
-        id="bracket-openscad",
-        title="Flanged bracket (OpenSCAD)",
-        kind="3d",
-        backend="openscad",
-        module="cad_context.generators.bracket_openscad",
-        params_model=BracketParams,
-        formats=("scad", "stl", "glb"),
-        description="The same reference L-bracket as CSG; STL needs the binary.",
+        description="Reference L-bracket built with build123d.",
         family="bracket",
     ),
     GeneratorSpec(
@@ -125,56 +143,62 @@ SPECS: tuple[GeneratorSpec, ...] = (
         description="Airfoil sections lofted into a tapered, twisted, swept wing.",
         family="wing",
     ),
-    GeneratorSpec(
-        id="wing-cadquery",
-        title="Lofted wing section (CadQuery)",
-        kind="3d",
-        backend="cadquery",
-        module="cad_context.generators.wing_cadquery",
-        params_model=WingParams,
-        formats=("step", "stl", "glb"),
-        description="The same wing loft through CadQuery — switchable in the app.",
-        family="wing",
-    ),
 )
 
-REGISTRY: dict[str, GeneratorSpec] = {spec.id: spec for spec in SPECS}
+
+def specs() -> tuple[GeneratorSpec, ...]:
+    from ..projects import project_specs
+
+    project = project_specs()
+    builtin_ids = {item.id for item in BUILTIN_SPECS}
+    collisions = sorted(builtin_ids & {item.id for item in project})
+    if collisions:
+        raise ValueError(
+            "project generator id collision with built-in generator(s): "
+            + ", ".join(collisions)
+        )
+    return BUILTIN_SPECS + project
+
+
+def registry() -> dict[str, GeneratorSpec]:
+    return {spec.id: spec for spec in specs()}
 
 
 def get(generator_id: str) -> GeneratorSpec:
+    entries = registry()
     try:
-        return REGISTRY[generator_id]
+        return entries[generator_id]
     except KeyError:
-        known = ", ".join(REGISTRY)
+        known = ", ".join(entries)
         raise KeyError(f"unknown generator {generator_id!r}; known: {known}") from None
 
 
 def ids() -> list[str]:
-    return list(REGISTRY)
+    return list(registry())
 
 
 def family(name: str, *, kind: str | None = None) -> list[GeneratorSpec]:
-    """Every generator that builds the same part, optionally of one kind."""
     if name not in families():
         known = ", ".join(families())
         raise KeyError(f"unknown family {name!r}; known: {known}")
     return [
         spec
-        for spec in SPECS
+        for spec in specs()
         if spec.family == name and (kind is None or spec.kind == kind)
     ]
 
 
 def families() -> list[str]:
-    return sorted({spec.family for spec in SPECS if spec.family})
+    return sorted({spec.family for spec in specs() if spec.family})
 
 
 __all__ = [
-    "REGISTRY",
-    "SPECS",
+    "BUILTIN_SPECS",
     "GeneratorSpec",
     "families",
     "family",
     "get",
     "ids",
+    "registry",
+    "specs",
 ]

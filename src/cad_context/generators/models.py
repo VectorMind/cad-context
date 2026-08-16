@@ -1,4 +1,4 @@
-"""Parameter models and analytic geometry shared by every backend.
+"""Parameter models and kernel-independent analytic geometry.
 
 This module must stay import-cheap: no CAD kernel imports. Backends import it,
 never the other way round. The analytic formulas here are the ground truth the
@@ -365,8 +365,8 @@ SECTION_FRACTIONS = (0.0, 1.0)
 def wing_sections(p: WingParams) -> list[np.ndarray]:
     """The section polygons of the wing, as (N, 3) millimetre point arrays.
 
-    Computed here rather than in either kernel module so both backends loft
-    *identical* wires and their volumes can be compared meaningfully.
+    Computed here rather than in the kernel module so the design geometry and
+    its analytic reference remain independent of build123d.
     """
     base = airfoil.outline(**airfoil_kwargs(p))
     sweep_gradient = math.tan(math.radians(p.sweep))

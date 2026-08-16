@@ -7,10 +7,8 @@ want numbers or a live kernel object:
 ```python
 from cad_context import api
 
-api.metrics("bracket-cadquery", width=90)      # -> dict of measurements
+api.metrics("bracket-build123d", width=90)     # -> dict of measurements
 part = api.build("bracket-build123d").native   # -> live build123d object
-api.compare(width=90)                          # -> cross-backend volumes
-api.compare(family="wing", twist=0)            # -> the same, for the wing loft
 ```
 
 Writing files is a separate, explicit decision: it happens through the
@@ -41,8 +39,14 @@ def generators() -> list[dict[str, Any]]:
             "formats": list(spec.formats),
             "available": _backends.available(spec.backend),
             "description": spec.description,
+            "origin": spec.origin,
+            "project": spec.project_name,
+            "artifact_root": str(
+                (spec.artifact_root or _workspace.cad_dir()).resolve()
+            ),
+            "exposure": spec.exposure,
         }
-        for spec in _generators.SPECS
+        for spec in _generators.specs()
     ]
 
 
@@ -53,9 +57,7 @@ def schema(generator_id: str) -> dict[str, Any]:
 
 def defaults(generator_id: str) -> dict[str, Any]:
     """Default parameter values for one generator."""
-    from .params import defaults as _defaults
-
-    return _defaults(_generators.get(generator_id).params_model)
+    return _generators.get(generator_id).parse().model_dump()
 
 
 def build(generator_id: str, **params: Any) -> BuildResult:
@@ -66,41 +68,6 @@ def build(generator_id: str, **params: Any) -> BuildResult:
 def metrics(generator_id: str, **params: Any) -> dict[str, Any]:
     """Measured properties of a generated shape (volume, bounds, …)."""
     return build(generator_id, **params).metrics
-
-
-def compare(*, family: str = "bracket", **params: Any) -> dict[str, Any]:
-    """Build one family's part on every available backend and compare volumes.
-
-    Only generators of the same family are comparable: they build the same part
-    from the same parameters, so one analytic volume is the reference for all of
-    them. Uses each kernel's own volume where it has one; OpenSCAD has no
-    in-process kernel, so it reports analytic only unless the CLI renders and
-    measures its STL.
-    """
-    rows: dict[str, Any] = {}
-    reference: float | None = None
-    for spec in _generators.family(family, kind="3d"):
-        if not _backends.available(spec.backend):
-            continue
-        result = build(spec.id, **params)
-        volume = result.metrics.get("volume")
-        reference = reference or result.metrics.get("volume_analytic")
-        rows[spec.id] = {
-            "backend": spec.backend,
-            "volume": volume,
-            "volume_analytic": result.metrics.get("volume_analytic"),
-        }
-    measured = [r["volume"] for r in rows.values() if r["volume"] is not None]
-    deviation = None
-    if measured and reference:
-        deviation = max(abs(v - reference) / reference for v in measured)
-    return {
-        "family": family,
-        "params": params,
-        "reference_volume": reference,
-        "backends": rows,
-        "max_deviation": deviation,
-    }
 
 
 def backend_status() -> list[dict[str, Any]]:
@@ -116,7 +83,6 @@ def paths() -> dict[str, str]:
 __all__ = [
     "backend_status",
     "build",
-    "compare",
     "defaults",
     "generators",
     "metrics",

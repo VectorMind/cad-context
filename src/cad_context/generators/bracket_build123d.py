@@ -1,8 +1,7 @@
 """3D reference part — flanged bracket, built with build123d (OCCT B-rep).
 
-Same construction as :mod:`cad_context.generators.bracket_cadquery`, written in
-build123d's algebra API. Keeping both alive is the point: they are compared,
-not ranked.
+The parameter model and analytic reference are kernel-independent; this module
+only drives the maintained build123d construction.
 """
 
 from __future__ import annotations

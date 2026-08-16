@@ -5,13 +5,13 @@
  * request can only reach a file inside it.
  */
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { realpath, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
 
-import { cadDir } from '../../../server/cadctx.ts';
+import { listGenerators } from '../../../server/cadctx.ts';
 
 export const prerender = false;
 
@@ -28,15 +28,24 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export const GET: APIRoute = async ({ params }) => {
   const requested = params.file ?? '';
-  const root = await cadDir();
-  const target = resolve(root, requested);
-  if (target !== root && !target.startsWith(root + sep)) {
+  const [generatorId, ...relativeParts] = requested.split('/').filter(Boolean);
+  const generator = (await listGenerators()).find((item) => item.id === generatorId);
+  if (!generator || relativeParts.length !== 1) {
+    return new Response('unknown artifact path', { status: 404 });
+  }
+  const declaredRoot = resolve(generator.artifact_root, generator.id);
+  const target = resolve(declaredRoot, relativeParts[0]!);
+  if (target !== declaredRoot && !target.startsWith(declaredRoot + sep)) {
     return new Response('forbidden', { status: 403 });
   }
   let size: number;
   try {
     const info = await stat(target);
     if (!info.isFile()) throw new Error('not a file');
+    const [realRoot, realTarget] = await Promise.all([realpath(declaredRoot), realpath(target)]);
+    if (realTarget !== realRoot && !realTarget.startsWith(realRoot + sep)) {
+      return new Response('forbidden', { status: 403 });
+    }
     size = info.size;
   } catch {
     return new Response(`no artifact at ${requested} — generate it first`, { status: 404 });

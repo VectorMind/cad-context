@@ -1,9 +1,8 @@
 ---
-// Rendered on the server from `cadctx generators` — the app never keeps its
-// own list of what can be generated.
+// Rendered from `cadctx generators`; the app owns no second registry.
 import Layout from '../layout/Layout.astro';
 import { listGenerators } from '../server/cadctx.ts';
-import { exposureFor } from '../server/exposure.ts';
+import { effectiveExposure } from '../server/exposure.ts';
 
 export const prerender = false;
 
@@ -14,6 +13,13 @@ try {
 } catch (cause) {
   error = cause instanceof Error ? cause.message : String(cause);
 }
+const projectGenerators = generators.filter((generator) => generator.origin === 'project');
+const groups = [
+  { title: 'Built-in generators', generators: generators.filter((g) => g.origin === 'builtin') },
+  ...(projectGenerators.length > 0
+    ? [{ title: `Project · ${projectGenerators[0]!.project}`, generators: projectGenerators }]
+    : []),
+];
 ---
 
 <Layout title="Shapes" command="uv run cadctx web">
@@ -29,46 +35,46 @@ try {
 
     <a class="card featured" href="/airfoil">
       <h2>Airfoil + wing loft</h2>
-      <p class="meta">
-        <span class="tag">2d + 3d</span> shapely · build123d · CadQuery
-      </p>
+      <p class="meta"><span class="tag">2d + 3d</span> shapely · build123d</p>
       <p class="knobs">
-        One panel, two shapes: the NACA profile plotted from its coordinates, and the
-        same profile lofted into a wing — with a selector to switch which kernel builds
-        the loft and compare them.
+        One panel, two shapes: the NACA profile plotted from its coordinates and
+        the same profile lofted into a wing with the maintained build123d backend.
       </p>
     </a>
 
-    <h2 class="section">One generator at a time</h2>
-
-    <div class="cards">
-      {
-        generators.map((generator) => {
-          const editable = exposureFor(generator.id).editable;
-          return (
-            <a
-              class:list={['card', { unavailable: !generator.available }]}
-              href={`/viewer/${generator.id}`}
-            >
-              <h2>{generator.title}</h2>
-              <p class="meta">
-                <span class="tag">{generator.kind}</span> {generator.backend} ·{' '}
-                {generator.formats.join(', ')}
-                {!generator.available && ' · backend not installed'}
-              </p>
-              <p class="knobs">
-                {editable.length > 0 ? (
-                  <>
-                    editable: <code>{editable.join(', ')}</code>
-                  </>
-                ) : (
-                  'preview only — no parameters exposed'
-                )}
-              </p>
-            </a>
-          );
-        })
-      }
-    </div>
+    {
+      groups.map((group) => (
+        <>
+          <h2 class="section">{group.title}</h2>
+          <div class="cards">
+            {group.generators.map((generator) => {
+              const editable = effectiveExposure(generator).editable;
+              return (
+                <a
+                  class:list={['card', { unavailable: !generator.available }]}
+                  href={`/viewer/${generator.id}`}
+                >
+                  <h2>{generator.title}</h2>
+                  <p class="meta">
+                    <span class="tag">{generator.kind}</span> {generator.backend} ·{' '}
+                    {generator.formats.join(', ')}
+                    {!generator.available && ' · backend not installed'}
+                  </p>
+                  <p class="knobs">
+                    {editable.length > 0 ? (
+                      <>
+                        editable: <code>{editable.join(', ')}</code>
+                      </>
+                    ) : (
+                      'preview only — no parameters exposed'
+                    )}
+                  </p>
+                </a>
+              );
+            })}
+          </div>
+        </>
+      ))
+    }
   </div>
 </Layout>

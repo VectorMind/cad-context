@@ -2,7 +2,7 @@
 import type { APIRoute } from 'astro';
 
 import { listGenerators } from '../../server/cadctx.ts';
-import { exposureFor } from '../../server/exposure.ts';
+import { effectiveExposure } from '../../server/exposure.ts';
 
 export const prerender = false;
 
@@ -15,7 +15,9 @@ export const GET: APIRoute = async () => {
     backend: g.backend,
     available: g.available,
     formats: g.formats,
-    editable: exposureFor(g.id).editable,
+    editable: effectiveExposure(g).editable,
+    origin: g.origin,
+    project: g.project,
     viewer: `/viewer/${g.id}`,
   }));
   return new Response(JSON.stringify({ generators: body }, null, 2), {

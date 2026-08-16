@@ -32,7 +32,7 @@ try {
   error = cause instanceof Error ? cause.message : String(cause);
 }
 
-const command = `uv run cadctx generate ${PROFILE} && uv run cadctx compare --family wing`;
+const command = `uv run cadctx generate ${PROFILE} && uv run cadctx verify wing-build123d`;
 ---
 
 <Layout title="Airfoil" crumb="airfoil + wing loft" command={command}>

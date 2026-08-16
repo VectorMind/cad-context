@@ -268,15 +268,10 @@ def test_wing_bounds_follow_span_and_sweep(wing_3d):
     assert metrics["bounds_max"] == pytest.approx(expected["max"], abs=1e-6)
 
 
-def test_wing_backends_agree_with_each_other_even_when_twisted():
-    """Twist costs the closed form its exactness; it must not cost agreement."""
-    payload = api.compare(family="wing", twist=-9.0)
-    volumes = [row["volume"] for row in payload["backends"].values()]
-    if len(volumes) < 2:
-        pytest.skip("needs two 3D kernels installed")
-    assert max(volumes) == pytest.approx(min(volumes), rel=1e-9)
-    # Second-order in the twist angle, so still well inside the mesh tolerance.
-    assert payload["max_deviation"] < 0.01
+def test_twisted_wing_marks_the_analytic_reference_as_approximate(wing_3d):
+    metrics = api.metrics(wing_3d, twist=-9.0)
+    assert metrics["reference_exact"] is False
+    assert metrics["volume"] == pytest.approx(metrics["volume_analytic"], rel=0.01)
 
 
 def test_wing_exports_round_trip(cache, wing_3d):

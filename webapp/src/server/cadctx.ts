@@ -46,6 +46,10 @@ export interface GeneratorSchema {
   family: string;
   formats: string[];
   description: string;
+  origin: 'builtin' | 'project';
+  project: string | null;
+  artifact_root: string;
+  exposure: { editable: string[]; preview?: string | null } | null;
   parameters: ParameterSpec[];
 }
 
@@ -58,6 +62,10 @@ export interface GeneratorInfo {
   formats: string[];
   available: boolean;
   description: string;
+  origin: 'builtin' | 'project';
+  project: string | null;
+  artifact_root: string;
+  exposure: { editable: string[]; preview?: string | null } | null;
 }
 
 /** Repository root: the parent of `webapp/`, or `CAD_CONTEXT_ROOT` when set. */
@@ -164,16 +172,6 @@ export function listGenerators(): Promise<GeneratorInfo[]> {
 
 export function generatorSchema(id: string): Promise<GeneratorSchema> {
   return once(`schema:${id}`, async () => (await cadctx(['schema', id])).data as GeneratorSchema);
-}
-
-export function workspaceLayout(): Promise<Record<string, string>> {
-  return once('paths', async () => (await cadctx(['paths'])).data.layout);
-}
-
-/** Absolute path of the `.cache/cad/` root, resolved from `cadctx paths`. */
-export async function cadDir(): Promise<string> {
-  const layout = await workspaceLayout();
-  return resolve(repoRoot(), layout.cad ?? '.cache/cad');
 }
 
 /**

@@ -11,6 +11,7 @@ Console discipline still applies: the dev server's own output is streamed into
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -61,14 +62,16 @@ def webapp_dir() -> Path:
     return directory
 
 
-def package_manager() -> str:
+def package_manager() -> tuple[str, ...]:
     pnpm = shutil.which("pnpm")
-    if not pnpm:
-        raise WebAppError(
-            "pnpm was not found on PATH — install Node.js 22+ and "
-            "`corepack enable pnpm`, then re-run"
-        )
-    return pnpm
+    if pnpm:
+        return (pnpm,)
+    corepack = shutil.which("corepack")
+    if corepack:
+        return (corepack, "pnpm")
+    raise WebAppError(
+        "pnpm/corepack was not found on PATH — install Node.js 22+ and re-run"
+    )
 
 
 def dependencies_installed(directory: Path) -> bool:
@@ -81,7 +84,7 @@ def install(directory: Path, log: Path) -> None:
         handle.write("$ pnpm install\n")
         handle.flush()
         completed = subprocess.run(
-            [package_manager(), "install"],
+            [*package_manager(), "install"],
             cwd=directory,
             stdout=handle,
             stderr=subprocess.STDOUT,
@@ -98,17 +101,26 @@ def start(
     host: str = "127.0.0.1",
     port: int = 4321,
     timeout: float = READY_TIMEOUT_S,
+    project: Path | None = None,
 ) -> DevServer:
     """Spawn ``pnpm dev`` and return once it answers HTTP (or fail loudly)."""
     log.parent.mkdir(parents=True, exist_ok=True)
     handle = log.open("w", encoding="utf-8")
     handle.write(f"$ pnpm dev --host {host} --port {port}\n")
     handle.flush()
+    environment = os.environ.copy()
+    if project is None:
+        environment.pop("CAD_CONTEXT_PROJECT", None)
+        environment["CAD_CONTEXT_NO_PROJECT"] = "1"
+    else:
+        environment["CAD_CONTEXT_PROJECT"] = str(project)
+        environment.pop("CAD_CONTEXT_NO_PROJECT", None)
     process = subprocess.Popen(  # noqa: S603 - fixed argv, no shell
-        [package_manager(), "dev", "--host", host, "--port", str(port)],
+        [*package_manager(), "dev", "--host", host, "--port", str(port)],
         cwd=directory,
         stdout=handle,
         stderr=subprocess.STDOUT,
+        env=environment,
     )
     handle.close()  # the child holds its own duplicate of the descriptor
     try:

@@ -23,29 +23,7 @@
       ],
       "preview": "glb"
     },
-    "wing-cadquery": {
-      "editable": [
-        "chord",
-        "max_camber",
-        "camber_position",
-        "thickness",
-        "trailing_edge",
-        "span",
-        "taper",
-        "twist",
-        "sweep"
-      ],
-      "preview": "glb"
-    },
-    "bracket-cadquery": {
-      "editable": ["width", "height", "hole_diameter"],
-      "preview": "glb"
-    },
     "bracket-build123d": {
-      "editable": ["width", "height", "hole_diameter"],
-      "preview": "glb"
-    },
-    "bracket-openscad": {
       "editable": ["width", "height", "hole_diameter"],
       "preview": "glb"
     }

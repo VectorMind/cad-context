@@ -52,18 +52,9 @@ def test_plate_bounds_follow_the_parameters():
     assert metrics["bounds"] == pytest.approx([0.0, 0.0, 200.0, 100.0], abs=1e-6)
 
 
-def test_compare_agrees_across_available_kernels():
-    payload = api.compare(width=90.0)
-    assert payload["reference_volume"] == pytest.approx(
-        bracket_volume(BracketParams(width=90.0))
-    )
-    if payload["max_deviation"] is not None:
-        assert payload["max_deviation"] < 0.01
-
-
 def test_generators_and_paths_are_pure_data():
     listed = api.generators()
-    assert {g["id"] for g in listed} >= {"plate2d", "bracket-cadquery"}
+    assert {g["id"] for g in listed} >= {"plate2d", "bracket-build123d"}
     assert set(api.paths()) >= {"cache", "results", "reports", "cad"}
     assert all(isinstance(row["available"], bool) for row in api.backend_status())
 

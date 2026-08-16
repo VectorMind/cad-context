@@ -43,3 +43,11 @@ def test_dependency_probe_looks_for_the_installed_framework(tmp_path):
     assert not web.dependencies_installed(tmp_path)
     (tmp_path / "node_modules" / "astro").mkdir(parents=True)
     assert web.dependencies_installed(tmp_path)
+
+
+def test_package_manager_falls_back_to_corepack(monkeypatch):
+    def which(name):
+        return None if name == "pnpm" else "C:/tools/corepack.cmd"
+
+    monkeypatch.setattr(web.shutil, "which", which)
+    assert web.package_manager() == ("C:/tools/corepack.cmd", "pnpm")

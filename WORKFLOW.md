@@ -7,22 +7,17 @@ contracts and dated plans for time-bounded implementation work.
 geometry and 3D shapes from Python code, with a companion web app for quick
 interactive preview and parametric adjustment of the generated shapes.
 
-## Guiding Principle: Multitudes, Not Monoculture
+## Guiding Principle: Focused Core, Portable Contracts
 
-The core design stance of this repository is to keep **multiple options alive
-in parallel** rather than deciding on a single method:
+The core minimizes maintained implementation debt: build123d is the maintained
+3D B-rep path, Shapely the 2D path, and trimesh the mesh/GLB bridge. OpenSCAD is
+an optional project toolchain for SCAD-specific delivery. Routine models are not
+duplicated across wrappers.
 
-- multiple 3D generator backends (B-rep scripting such as CadQuery and
-  build123d, CSG such as OpenSCAD, mesh-level such as trimesh);
-- multiple 2D vector paths (DXF, SVG, geometry kernels);
-- multiple visualization surfaces (the companion web app for quick preview,
-  plus external viewers where they are simply better).
-
-Shared behavior is defined by **contracts over exchange formats** (STEP, STL,
-glTF/GLB, 3MF, SVG, DXF), never by one backend's internal object model. A new
-backend joins by honoring the contracts, not by replacing an existing one.
-When a decision genuinely must narrow options, it is argued in a plan's open
-points and folded into a spec once accepted.
+Geometry remains portable because shared behavior is defined by contracts over
+exchange formats (STEP, STL, GLB, SVG, DXF, JSON, SCAD), never by one backend's
+native object model. Risk-triggered alternative implementations belong in the
+external model project and do not become permanent core maintenance by default.
 
 ## Spec Maintenance
 
@@ -35,11 +30,11 @@ implementation detail in the spec; capture the durable rule behind it.
 
 ## Generated Artifacts
 
-Generated geometry (meshes, STEP files, SVG/DXF exports, tessellation caches,
-preview payloads) is derived data. It belongs under a workspace output
-directory (`out/` by default, or a caller-provided path), never committed to
-git and never mixed into `specifications/` or `plans/`. Small checked-in
-fixtures for tests are the only exception, and they must be deliberately tiny.
+Generated geometry is derived data. Built-in output belongs under `.cache/cad/`;
+an external model project's durable output belongs under its `cad/` directory.
+Neither is committed or mixed into repository `specifications/` or `plans/`.
+Checked-in project fixtures contain source only and are copied to temporary
+directories before generation.
 
 ## Git Ownership
 
@@ -180,8 +175,9 @@ as bounding box, volume, or vertex count) — never "looks right" alone.
 
 ## Scope Ownership
 
-`cad-context` owns the generator toolkits, the exchange-format contracts, and
-the companion preview web app. It does not own any single CAD kernel's
-roadmap, and it does not compete with full desktop CAD (FreeCAD, commercial
+`cad-context` owns the supported generator toolkit, external-project contract,
+exchange-format contracts, and companion preview app. Model-specific evidence,
+code, and SDD documents belong to the external project. It does not compete
+with full desktop CAD (FreeCAD, commercial
 tools) or with dedicated viewers — where an external viewer is better for a
 job, plans should say so and integrate rather than rebuild.

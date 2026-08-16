@@ -7,9 +7,9 @@
  * wing. Each generator gets its own scheduler, so the fast 2D redraw is never
  * held up behind a B-rep loft.
  *
- * The loft backend is an app-level switch, not a parameter: build123d and
- * CadQuery are two real implementations of the same specification, and the
- * point of the selector is to compare their output directly (OP-305). There is
+ * The loft implementation is discovered from the wing family. The maintained
+ * built-in is build123d; the component still tolerates additional project
+ * implementations without making a backend a shape parameter. There is
  * no faster approximate path behind it — the app renders real generator output
  * and shows a spinner while that takes its time.
  */
@@ -229,18 +229,20 @@ export default function AirfoilWorkbench({ profile, wings }: AirfoilWorkbenchPro
               {wingLoop.state.lastMs === null ? '—' : `${wingLoop.state.lastMs} ms`}
               {wingLoop.state.cliMs !== null && ` · ${wingLoop.state.cliMs} ms cadctx`}
             </span>
-            <span className="backends" role="group" aria-label="loft backend">
-              {wings.map((option, index) => (
-                <button
-                  type="button"
-                  key={option.schema.generator}
-                  className={index === wingIndex ? 'selected' : ''}
-                  onClick={() => setWingIndex(index)}
-                >
-                  {option.backend}
-                </button>
-              ))}
-            </span>
+            {wings.length > 1 && (
+              <span className="backends" role="group" aria-label="loft backend">
+                {wings.map((option, index) => (
+                  <button
+                    type="button"
+                    key={option.schema.generator}
+                    className={index === wingIndex ? 'selected' : ''}
+                    onClick={() => setWingIndex(index)}
+                  >
+                    {option.backend}
+                  </button>
+                ))}
+              </span>
+            )}
             <span className="spacer" />
             <label>
               <input

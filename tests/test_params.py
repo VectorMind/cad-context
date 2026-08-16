@@ -23,8 +23,8 @@ REQUIRED_KEYS = {
 
 
 def test_schema_lists_every_parameter_with_the_contract_keys():
-    schema = describe(BracketParams, generator="bracket-cadquery")
-    assert schema["generator"] == "bracket-cadquery"
+    schema = describe(BracketParams, generator="bracket-build123d")
+    assert schema["generator"] == "bracket-build123d"
     names = {p["name"] for p in schema["parameters"]}
     assert names == set(BracketParams.model_fields)
     for parameter in schema["parameters"]:

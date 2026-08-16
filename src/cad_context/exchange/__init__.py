@@ -8,7 +8,10 @@ geometry, and it always writes to the fixed per-generator directory
 
 from __future__ import annotations
 
+import json
+import os
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -63,13 +66,30 @@ def export(
     skipped: dict[str, str] = {}
     measurements: dict[str, Any] = {}
 
+    def write_atomic(path: Path, writer) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(
+            f".{path.stem}.tmp-{uuid.uuid4().hex[:8]}{path.suffix}"
+        )
+        try:
+            writer(temporary)
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
     for fmt in ordered:
         path = destination(build_result.generator, fmt, out_dir)
         try:
             if fmt == "svg":
-                export2d.write_svg(build_result.native, path)
+                write_atomic(
+                    path,
+                    lambda target: export2d.write_svg(build_result.native, target),
+                )
             elif fmt == "dxf":
-                export2d.write_dxf(build_result.native, path)
+                write_atomic(
+                    path,
+                    lambda target: export2d.write_dxf(build_result.native, target),
+                )
             elif fmt == "json":
                 if build_result.payload is None:
                     # A generator that declares the format must publish one:
@@ -78,24 +98,41 @@ def export(
                         f"{build_result.generator!r} declares the json format "
                         "but published no payload"
                     )
-                export2d.write_json(build_result.payload, path)
+                write_atomic(
+                    path,
+                    lambda target: export2d.write_json(build_result.payload, target),
+                )
             elif fmt == "scad":
-                export3d.write_scad(build_result, path)
+                write_atomic(
+                    path, lambda target: export3d.write_scad(build_result, target)
+                )
             elif fmt == "step":
-                export3d.write_step(build_result, path)
+                write_atomic(
+                    path, lambda target: export3d.write_step(build_result, target)
+                )
             elif fmt == "stl":
-                export3d.write_stl(build_result, path)
+                write_atomic(
+                    path, lambda target: export3d.write_stl(build_result, target)
+                )
             elif fmt == "glb":
                 # GLB is derived from a mesh. When the caller did not ask for
                 # the STL itself, tessellate into a temporary file so only the
                 # requested artifact lands in the workspace.
                 if "stl" in files:
-                    export3d.write_glb(files["stl"], path)
+                    write_atomic(
+                        path,
+                        lambda target: export3d.write_glb(files["stl"], target),
+                    )
                 else:
                     with tempfile.TemporaryDirectory(prefix="cadctx-") as scratch:
                         intermediate = Path(scratch) / f"{build_result.generator}.stl"
                         export3d.write_stl(build_result, intermediate)
-                        export3d.write_glb(intermediate, path)
+                        write_atomic(
+                            path,
+                            lambda target, source=intermediate: export3d.write_glb(
+                                source, target
+                            ),
+                        )
         except (BackendUnavailable, RuntimeError) as exc:
             skipped[fmt] = str(exc)
             continue
@@ -105,6 +142,8 @@ def export(
         mesh_source = files.get("stl") or files.get("glb")
         if mesh_source:
             measurements["mesh"] = export3d.mesh_metrics(mesh_source)
+        if "step" in files:
+            measurements["step"] = export3d.read_step_metrics(files["step"])
         if "dxf" in files:
             measurements["dxf"] = export2d.read_dxf_metrics(files["dxf"])
         if "svg" in files:
@@ -112,7 +151,35 @@ def export(
         if "json" in files:
             measurements["json"] = export2d.read_json_metrics(files["json"])
 
-    return {"files": files, "skipped": skipped, "measurements": measurements}
+    measurement_file: Path | None = None
+    if measure:
+        from .. import generators
+
+        spec = generators.get(build_result.generator)
+        if spec.origin == "project":
+            directory = Path(out_dir) if out_dir else workspace.generator_dir(spec.id)
+            measurement_file = directory / f"{spec.id}.measurements.json"
+            summary = {
+                "generator": spec.id,
+                "params": build_result.params,
+                "metrics": build_result.metrics,
+                "files": {fmt: str(path) for fmt, path in files.items()},
+                "measurements": measurements,
+                "skipped": skipped,
+            }
+            write_atomic(
+                measurement_file,
+                lambda target: target.write_text(
+                    json.dumps(summary, indent=2), encoding="utf-8"
+                ),
+            )
+
+    return {
+        "files": files,
+        "skipped": skipped,
+        "measurements": measurements,
+        "measurement_file": measurement_file,
+    }
 
 
 __all__ = [

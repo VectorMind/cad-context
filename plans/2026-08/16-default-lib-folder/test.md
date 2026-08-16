@@ -1,7 +1,7 @@
 # Test Proof: Default Library And Project Folder Workflow
 
-Planning-only packet — proof is document review and consistency checks, per
-`WORKFLOW.md` § Test Proof. No runtime behavior was added or changed.
+This packet contains the original planning-review record followed by final
+runtime proof for the completed implementation, per `WORKFLOW.md` § Test Proof.
 
 ## Decision Pass Applied (2026-08-16, later same day)
 
@@ -44,18 +44,82 @@ The maintainer answered the three residual points. Consistency checks:
 | Repo rules respected | No dependency file edited (OPs not yet accepted); no git commands run; no generated files outside `plans/` | as expected |
 | Index update | `plans/open.md` lists this packet as open | as expected |
 
-## Fixtures Referenced (not exercised)
+## Planning Fixtures Referenced
 
 - `C:\Users\wassi\OneDrive\Partage Wassim Mezri\15-cache-barriere\handoff.md`
   — basis document (read only).
-- `C:\Users\wassi\OneDrive\Partage Wassim Mezri\cache-barriere` — future
-  phase-6 dry-validation fixture; contents verified to be evidence-only
-  (`dimensions.md`, photos, sketch). No generation performed.
+- `C:\Users\wassi\OneDrive\Partage Wassim Mezri\cache-barriere` — phase-6
+  dry-validation target; no generation was performed there.
 
 ## Known Gaps
 
-- All 13 OPs await maintainer acceptance; no runtime proof exists yet. The
-  implementation-pass exit criteria in `plan.md` define the future runtime
-  proof obligations.
-- The OneDrive risk set (sync locks, latency, path quoting) is identified but
-  unmeasured until phase 6.
+- Real OneDrive generation and sync-lock behavior remain unmeasured because
+  the authorized acceptance check was deliberately non-writing. Copied-project
+  generation and live serving cover the application path without altering the
+  user's evidence folder.
+
+## Implementation Proof (2026-08-16)
+
+### Dependency surface
+
+| Command | Expected | Actual |
+| --- | --- | --- |
+| `uv lock` | lock resolves without the CadQuery project or override | 72 packages resolved; no `cadquery`, numba, or `override-dependencies`; build123d's required `cadquery-ocp-novtk` remains |
+| `uv sync --extra default` | lean documented install | success; removed CadQuery, numba, VTK/trame stack, SolidPython2, and the former VTK OCP wheel; installed build123d's novtk OCP wheel |
+| `uv sync --extra all` | optional OpenSCAD authoring layer remains installable | success; added only `solidpython2`, `ply`, and `setuptools` |
+
+### Static and automated checks
+
+| Command | Actual |
+| --- | --- |
+| `uv run ruff check .` | all checks passed |
+| `uv run pytest` | **75 passed** in 6.89 s |
+| `corepack pnpm check` | 23 files; 0 errors, warnings, or hints |
+| `corepack pnpm test` | **10 passed** |
+| `corepack pnpm build` | production server/client build completed; existing non-blocking >500 kB ModelView chunk warning remains |
+
+### Built-in discovery and format-aware verification
+
+`cadctx --no-project info`, `generators`, and `paths` reported repository mode,
+four supported backends (`shapely`, `build123d`, `openscad`, `trimesh`), and four
+built-in generators.
+
+| Generator | Result | Reference | Native | Checks |
+| --- | --- | ---: | ---: | --- |
+| `plate2d` | ok | 8,296.345145 mm² | 8,296.404436 mm² | 5/5: analytic, native tolerance, DXF units/geometry, SVG |
+| `airfoil` | ok | 1,177.349093 mm² | 1,177.349093 mm² | 6/6: analytic, native, DXF, SVG, JSON |
+| `bracket-build123d` | ok | 48,713.628421 mm³ | 48,713.628421 mm³ | 5/5: exact native, watertight mesh, mesh tolerance, STEP re-import |
+| `wing-build123d` | ok | 230,760.422171 mm³ | 230,663.611210 mm³ | 5/5: declared approximate reference within 1%, watertight mesh, STEP re-import |
+
+### External project fixture
+
+A fresh copy of `tests/fixtures/sample_project` under `.cache/scratch/` proved:
+
+- merged discovery: four built-ins plus `project-plate` and
+  `project-openscad-box`;
+- project manifest defaults (`width=75`) reflected in the schema;
+- generation and verification wrote stable SVG, DXF, and
+  `project-plate.measurements.json` under the copied project's `cad/`;
+- `project-plate` passed 5/5 checks at exactly 2,250 mm²;
+- unit tests proved collision hard-stop, no-clobber/dry-run init, pointer
+  precedence and bypass, no project `__pycache__`, and OpenSCAD source-only
+  degradation when its binary is unavailable.
+
+### Live web acceptance
+
+`cadctx --project <copied-fixture> web --no-install --port 4399` started through
+the documented surface. Because 4399 was already occupied, Astro selected 4400
+and `cadctx` detected that actual URL. Over HTTP:
+
+- `/api/generators.json` listed `project-plate` under `sample-project` with
+  editable `width`;
+- `POST /api/generate` returned `ok` for `width=82`;
+- the returned project SVG route responded **200**, `image/svg+xml`, 404 bytes;
+- the temporary server was stopped and port 4400 no longer answered.
+
+### Real evidence-folder dry validation
+
+`cadctx project init "C:\Users\wassi\OneDrive\Partage Wassim
+Mezri\cache-barriere" --dry-run` returned `ok project-init — project scaffold
+preview`. A subsequent read confirmed `project.yaml` was not created and the
+folder still contained only the original `dimensions.md` and image evidence.

@@ -1,7 +1,7 @@
 [project]
 name = "cad-context"
 version = "0.1.0"
-description = "Programmatic CAD workbench: multiple generator backends behind exchange-format contracts."
+description = "Project-oriented programmatic CAD workbench built around build123d."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
@@ -16,10 +16,7 @@ dependencies = [
 cadctx = "cad_context.cli:main"
 
 [project.optional-dependencies]
-# numba floor: without it the resolver backtracks to numba 0.53 (sdist,
-# Python <3.10 only) trying to satisfy cadquery's numba dependency.
-cadquery = ["cadquery", "numba>=0.61"]
-build123d = ["build123d", "cadquery-ocp>=7.9.3.1,<8.0"]
+build123d = ["build123d"]
 openscad = ["solidpython2"]
 mesh = ["trimesh", "manifold3d"]
 # No `airfoil` extra: the NACA family is numpy, which is a core dependency, and
@@ -27,19 +24,14 @@ mesh = ["trimesh", "manifold3d"]
 # placeholder that used to sit here reserved an aerosandbox dependency that
 # OP-302 rejected outright.
 vector2d = ["ezdxf", "drawsvg", "shapely"]
-all = ["cad-context[cadquery,build123d,openscad,mesh,vector2d]"]
+default = ["cad-context[build123d,mesh,vector2d]"]
+all = ["cad-context[default,openscad]"]
 
 [dependency-groups]
 dev = ["pytest", "ruff"]
 
 [tool.uv]
 default-groups = ["dev"]
-# CadQuery pins the VTK-enabled OCP build, build123d pins `cadquery-ocp-novtk`.
-# Both wheels install the same `OCP/` package, so whichever is written last
-# wins and the other backend breaks on import. Force the VTK build (a superset)
-# everywhere; the build123d extra requires `cadquery-ocp` directly so it stays
-# installable on its own.
-override-dependencies = ["cadquery-ocp-novtk; sys_platform == 'never'"]
 
 [build-system]
 requires = ["hatchling"]

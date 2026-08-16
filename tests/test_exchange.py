@@ -14,10 +14,10 @@ VOLUME_TOLERANCE = 0.01
 
 
 def test_fixed_destination_is_stable_and_inside_the_cache(cache):
-    first = exchange.destination("bracket-cadquery", "stl")
-    second = exchange.destination("bracket-cadquery", "stl")
+    first = exchange.destination("bracket-build123d", "stl")
+    second = exchange.destination("bracket-build123d", "stl")
     assert first == second
-    assert first.name == "bracket-cadquery.stl"
+    assert first.name == "bracket-build123d.stl"
     assert workspace.cad_dir() in first.parents
 
 
@@ -90,29 +90,12 @@ def test_glb_alone_tessellates_without_leaving_an_stl(tmp_path, bracket_3d):
     )
 
 
-@pytest.mark.skipif(
-    not (backends.available("cadquery") or backends.available("build123d")),
-    reason="no B-rep backend installed",
-)
+@pytest.mark.skipif(not backends.available("build123d"), reason="build123d missing")
 def test_step_round_trips_through_a_kernel(tmp_path):
-    generator = (
-        "bracket-cadquery" if backends.available("cadquery") else "bracket-build123d"
-    )
+    generator = "bracket-build123d"
     build_result = api.build(generator, width=90.0)
     exported = exchange.export(build_result, ["step"], out_dir=tmp_path, measure=False)
     metrics = export3d.read_step_metrics(exported["files"]["step"])
     assert metrics["volume"] == pytest.approx(
         bracket_volume(BracketParams(width=90.0)), rel=1e-6
     )
-
-
-@pytest.mark.skipif(not backends.available("openscad"), reason="openscad extra missing")
-def test_openscad_degrades_to_source_when_the_binary_is_absent(tmp_path, monkeypatch):
-    monkeypatch.setattr(export3d, "openscad_executable", lambda: None)
-    build_result = api.build("bracket-openscad")
-    exported = exchange.export(build_result, ["scad", "stl", "glb"], out_dir=tmp_path)
-
-    assert exported["files"]["scad"].exists()
-    assert "stl" not in exported["files"] and "glb" not in exported["files"]
-    assert "OpenSCAD binary not found" in exported["skipped"]["stl"]
-    assert "cylinder" in exported["files"]["scad"].read_text(encoding="utf-8")

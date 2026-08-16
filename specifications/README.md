@@ -35,3 +35,9 @@ and running notes in `plans/` instead.
 - [`external-binaries/`](external-binaries/spec.md) — external tools declared in
   `config/artifacts.yaml`, provisioned by `cadctx fetch` into `.tools/`, and
   degrading gracefully when absent.
+- [`backend-policy/`](backend-policy/spec.md) — build123d as the maintained
+  B-rep path, OpenSCAD as an optional project toolchain, and the contract for
+  risk-triggered alternative reconstruction.
+- [`model-projects/`](model-projects/spec.md) — external project selection,
+  manifest schema, trusted code loading, output routing, collisions, and web
+  process lifetime.

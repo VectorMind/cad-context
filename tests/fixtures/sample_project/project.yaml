@@ -1,0 +1,29 @@
+version: 1
+name: sample-project
+description: Project-loader and output-routing fixture.
+generators:
+  - id: project-plate
+    title: Project plate
+    kind: 2d
+    backend: shapely
+    module: generators.sample_plate
+    params_model: ProjectPlateParams
+    formats: [svg, dxf]
+    family: project-plate
+    defaults:
+      width: 75.0
+  - id: project-openscad-box
+    title: Project OpenSCAD box
+    kind: 3d
+    backend: openscad
+    module: generators.openscad_box
+    params_model: OpenScadBoxParams
+    formats: [scad, stl, glb]
+    family: project-openscad-box
+exposure:
+  project-plate:
+    editable: [width]
+    preview: svg
+  project-openscad-box:
+    editable: [width]
+    preview: glb

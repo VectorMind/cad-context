@@ -7,7 +7,7 @@ web app renders controls straight from it) and by agents:
 
 ```json
 {
-  "generator": "bracket-cadquery",
+  "generator": "bracket-build123d",
   "parameters": [
     {"name": "width", "type": "number", "default": 80.0, "minimum": 20.0,
      "maximum": 300.0, "step": 1.0, "unit": "mm", "description": "..."}

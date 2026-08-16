@@ -10,8 +10,8 @@ from typing import Any
 class BuildResult:
     """The in-memory outcome of one generator run — never a file.
 
-    ``native`` holds the backend's own object (a shapely geometry, a CadQuery
-    ``Workplane``, a build123d ``Part``, a solidpython2 object). Contracts live
+    ``native`` holds the backend's own object (a shapely geometry, a build123d
+    ``Part``, or a solidpython2 object). Contracts live
     at the export boundary, so nothing outside the owning backend module is
     allowed to interpret it.
 

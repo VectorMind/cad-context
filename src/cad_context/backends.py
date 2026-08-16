@@ -30,9 +30,6 @@ BACKENDS: dict[str, Backend] = {
         ("shapely", "ezdxf", "drawsvg"),
         description="2D geometry ops with SVG/DXF export",
     ),
-    "cadquery": Backend(
-        "cadquery", "cadquery", ("cadquery",), description="B-rep via OCCT, fluent API"
-    ),
     "build123d": Backend(
         "build123d",
         "build123d",

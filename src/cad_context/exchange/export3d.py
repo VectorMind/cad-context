@@ -21,11 +21,7 @@ ANGULAR_TOLERANCE = 0.1
 def write_step(build_result: Any, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     backend = build_result.backend
-    if backend == "cadquery":
-        import cadquery as cq
-
-        cq.exporters.export(build_result.native, str(path))
-    elif backend == "build123d":
+    if backend == "build123d":
         from build123d import export_step
 
         export_step(build_result.native, str(path))
@@ -37,16 +33,7 @@ def write_step(build_result: Any, path: Path) -> Path:
 def write_stl(build_result: Any, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     backend = build_result.backend
-    if backend == "cadquery":
-        import cadquery as cq
-
-        cq.exporters.export(
-            build_result.native,
-            str(path),
-            tolerance=LINEAR_TOLERANCE,
-            angularTolerance=ANGULAR_TOLERANCE,
-        )
-    elif backend == "build123d":
+    if backend == "build123d":
         from build123d import export_stl
 
         export_stl(
@@ -57,8 +44,11 @@ def write_stl(build_result: Any, path: Path) -> Path:
         )
     elif backend == "openscad":
         scad_path = path.with_suffix(".scad")
-        write_scad(build_result, scad_path)
-        render_scad(scad_path, path)
+        try:
+            write_scad(build_result, scad_path)
+            render_scad(scad_path, path)
+        finally:
+            scad_path.unlink(missing_ok=True)
     else:
         raise BackendUnavailable(f"backend {backend!r} cannot export STL")
     return path
@@ -125,16 +115,15 @@ def mesh_metrics(mesh_path: Path) -> dict[str, Any]:
 def read_step_metrics(step_path: Path) -> dict[str, Any]:
     """Round-trip a STEP file back through a kernel and measure the solid."""
     try:
-        import cadquery as cq
+        from build123d import import_step
 
-        shape = cq.importers.importStep(str(step_path))
-        solid = shape.val()
-        bbox = solid.BoundingBox()
+        shape = import_step(str(step_path))
+        bbox = shape.bounding_box()
         return {
-            "volume": float(solid.Volume()),
-            "area": float(solid.Area()),
-            "bounds_min": [bbox.xmin, bbox.ymin, bbox.zmin],
-            "bounds_max": [bbox.xmax, bbox.ymax, bbox.zmax],
+            "volume": float(shape.volume),
+            "area": float(shape.area),
+            "bounds_min": [float(value) for value in bbox.min],
+            "bounds_max": [float(value) for value in bbox.max],
         }
     except ImportError as exc:  # pragma: no cover - depends on installed extras
-        raise BackendUnavailable("STEP round-trip needs the cadquery extra") from exc
+        raise BackendUnavailable("STEP round-trip needs the build123d extra") from exc

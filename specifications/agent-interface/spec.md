@@ -1,57 +1,34 @@
 # Agent And Human Interface
 
-How every capability of this repository is reached. The rule is one interface,
-documented in plain files, usable by a person and by an agent without any
-special integration.
+## CLI Surface
 
-## The CLI Is The Interface
+`cadctx` is the documented interface for every artifact-producing capability.
+Commands are non-interactive, write structured result files, and are documented
+in `README.md`. A capability without a documented command is not delivered.
 
-`cadctx` is the single documented entry point for humans and agents alike.
+Global discovery and selection options are `--json`, `--quiet`, `--project`,
+and `--no-project`. Machine-readable discovery is:
 
-- Every capability is a `cadctx` subcommand. A capability that is not reachable
-  through a documented command is not delivered.
-- Every command is documented in `README.md` with a usage line and a runnable
-  example, sufficient to drive the repository from documentation alone.
-- Commands are non-interactive: no prompts, no TTY assumptions. Options carry
-  defaults that make the bare command useful.
-- Every command reports through the result-file contract in
-  `specifications/workspace-layout/spec.md`, so its outcome is inspectable
-  after the fact without re-running it.
+- `cadctx info` — supported backend/tool availability and active project;
+- `cadctx generators` — merged built-in/project registry and artifact roots;
+- `cadctx schema <generator>` — parameter and exposure contract;
+- `cadctx paths` — operational and per-generator output paths;
+- `cadctx project info` — active project metadata without importing code.
 
-## No Skills, No Bespoke Integrations
+Artifact commands are `generate`, `demo`, `verify`, and `fetch`. Project
+lifecycle commands are `project init`, `project use`, `project clear`, and
+`project info`. The preview server is started only through `cadctx web`.
 
-Routing lives in documentation, not in packaged agent skills, plugins, or
-tool-specific manifests:
+## Python API
 
-- `README.md` — the human entry point and the command reference.
-- `AGENTS.md` — the agent entry point: rules, surfaces, and worked recipes.
-- `WORKFLOW.md` — the spec/plan workflow.
+`cad_context.api` is the read-only/in-memory surface for exploration. It lists
+the merged registry, returns schemas/defaults/status/paths, builds native
+objects, and returns metrics. It writes no artifacts and exposes no additional
+capability unavailable through the CLI. Scripts that explicitly need files call
+the exchange layer or the CLI.
 
-Any agent that can read files and run commands is fully equipped. Adding a
-capability means adding a command plus its documentation in the same pass.
+## Plain-File Routing
 
-## The Python API Is The Second Surface
-
-Agents and scripts may bypass the CLI and call `cad_context.api` directly —
-this is expected for exploration, measurement and one-off experiments:
-
-- The API returns data and live kernel objects. It writes no files, prints
-  nothing, and touches no workspace directory.
-- Anything the API can do about a shape, the CLI can do too; the API adds
-  direct access to backend-native objects, not extra capability.
-- Throwaway scripts belong in `.cache/scratch/`.
-- When a script needs artifacts on disk, it calls the export layer explicitly
-  or runs the CLI. Writing files is never a side effect of asking a question.
-
-## Machine-Readable Discovery
-
-An agent discovers the repository at runtime, without reading source:
-
-- `cadctx generators` — what can be generated, on which backend, in which
-  formats, and whether that backend is installed.
-- `cadctx schema <generator>` — the parameter contract for one generator.
-- `cadctx info` — backend and external-binary availability.
-- `cadctx paths` — the workspace layout and the fixed artifact paths.
-
-Each of these writes a result file whose `data` object is the machine-readable
-form of the answer.
+Repository routing lives in `README.md`, `AGENTS.md`, and `WORKFLOW.md`, not in
+packaged agent skills or tool-specific manifests. Model-specific routing and web
+exposure live in the external project's versioned `project.yaml`.

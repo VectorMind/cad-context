@@ -39,7 +39,7 @@ def console_lines(output: str) -> list[str]:
         (("info",), "info"),
         (("generators",), "generators"),
         (("paths",), "paths"),
-        (("schema", "bracket-cadquery"), "schema-bracket-cadquery"),
+        (("schema", "bracket-build123d"), "schema-bracket-build123d"),
         (("fetch", "--list"), "fetch-list"),
     ],
 )
@@ -91,11 +91,12 @@ def test_regenerating_reuses_the_same_paths():
     assert first == second  # a viewer can keep pointing at one URL
 
 
-def test_compare_reports_cross_backend_agreement():
-    run("compare", "--no-meshes")
-    payload = result_payload("compare-bracket")
-    assert payload["data"]["within_tolerance"] is True
-    assert payload["data"]["max_deviation"] < 0.01
+@pytest.mark.parametrize("generator", ["plate2d", "bracket-build123d"])
+def test_verify_proves_2d_and_3d_generators(generator):
+    run("verify", generator)
+    payload = result_payload(f"verify-{generator}")
+    assert payload["status"] == "ok"
+    assert all(payload["data"]["checks"].values())
 
 
 def test_bad_parameter_fails_with_a_result_file_and_exit_code():

@@ -22,10 +22,10 @@ declaration as JSON:
 
 ```json
 {
-  "generator": "bracket-cadquery",
-  "title": "Flanged bracket (CadQuery)",
+  "generator": "bracket-build123d",
+  "title": "Flanged bracket (build123d)",
   "kind": "3d",
-  "backend": "cadquery",
+  "backend": "build123d",
   "formats": ["step", "stl", "glb"],
   "description": "…",
   "parameters": [
@@ -72,7 +72,7 @@ are `null` rather than absent, so consumers can index them unconditionally.
 
 ## Generator Identity
 
-A generator is addressed by a stable id (`plate2d`, `bracket-cadquery`). The id
+A generator is addressed by a stable id (`plate2d`, `bracket-build123d`). The id
 also determines the fixed artifact paths defined in
 `specifications/workspace-layout/spec.md`, so a consumer that knows the id can
 predict where the geometry will be without parsing a response.

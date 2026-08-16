@@ -1,14 +1,12 @@
 """3D wing section — ruled loft through airfoil sections, in build123d.
 
-The twin of :mod:`cad_context.generators.wing_cadquery`: same section wires,
-same ruled loft, a different kernel API driving it. Both are kept alive so the
-web app can switch between them and the outputs can be compared directly
-(OP-305) — the repository's rule is multiple real implementations, never an
-approximation standing in for one.
+The sections and analytic reference are kernel-independent; this module only
+drives the maintained build123d construction. The web app renders this real
+generator output directly, never an approximation.
 
 The sections themselves are computed in
-:func:`cad_context.generators.models.wing_sections`, so neither backend owns
-any airfoil geometry.
+:func:`cad_context.generators.models.wing_sections`, so the backend does not own
+the airfoil geometry.
 """
 
 from __future__ import annotations
@@ -47,6 +45,7 @@ def build(params: WingParams) -> BuildResult:
         metrics={
             "volume": part.volume,
             "volume_analytic": wing_volume(p),
+            "reference_exact": abs(p.twist) < 1e-12,
             "area": part.area,
             "bounds_min": list(tuple(bbox.min)),
             "bounds_max": list(tuple(bbox.max)),

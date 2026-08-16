@@ -65,6 +65,7 @@ def reports_dir() -> Path:
 
 
 def cad_dir() -> Path:
+    """Repository-cache geometry root for built-in generators."""
     return cache_dir() / "cad"
 
 
@@ -78,7 +79,18 @@ def tools_dir() -> Path:
 
 def generator_dir(generator_id: str) -> Path:
     """Fixed output directory for one generator's geometry."""
-    return cad_dir() / generator_id
+    root = cad_dir()
+    try:
+        from . import generators
+
+        spec = generators.get(generator_id)
+        if spec.artifact_root is not None:
+            root = spec.artifact_root
+    except KeyError:
+        # Direct exchange callers may construct a BuildResult without registering
+        # it. Preserve the historical cache fallback for that explicit API use.
+        pass
+    return root / generator_id
 
 
 def ensure(path: Path) -> Path:
@@ -97,7 +109,10 @@ def rel(path: Path | str) -> str:
 
 def layout() -> dict[str, str]:
     """The workspace contract as plain data (consumed by ``cadctx paths``)."""
-    return {
+    from . import projects
+
+    active = projects.active_path()
+    payload = {
         "root": rel(repo_root()),
         "cache": rel(cache_dir()),
         "results": rel(results_dir()),
@@ -105,4 +120,8 @@ def layout() -> dict[str, str]:
         "cad": rel(cad_dir()),
         "scratch": rel(scratch_dir()),
         "tools": rel(tools_dir()),
+        "active_project": str(active) if active else "none",
     }
+    if active:
+        payload["project_cad"] = str((active / "cad").resolve())
+    return payload

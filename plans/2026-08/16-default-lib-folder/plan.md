@@ -1,9 +1,10 @@
 # Plan: Default Library And Project Folder Workflow
 
 Packet: `plans/2026-08/16-default-lib-folder/`
-Status: planning closed — two maintainer decision passes on 2026-08-16
-resolved all open points (OP-501…OP-516). Ready for implementation;
-implementation has not started.
+Status: **implemented and proven on 2026-08-16** after two maintainer decision
+passes resolved OP-501…OP-516. Review-time inconsistencies were resolved in
+favor of a focused supported toolchain, format-aware verification, and a web
+process that snapshots one project until restart.
 Basis: the cache-barriere experience and its handoff
 (`…\15-cache-barriere\handoff.md`, external), which recorded OP-408
 (default-backend policy) as proposed.
@@ -31,8 +32,9 @@ Two structural problems surfaced during the cache-barriere family work:
    (given on the first prompt or via an environment variable) carries
    everything specific to a model family — evidence, spec, parameters,
    optional generator code — and receives all generated artifacts, with the
-   web app serving models straight from there. Working on a project must never
-   require a change to this repo that would need a git commit.
+   web app serving models straight from there. Working on a project that uses
+   the supported build123d/Shapely/OpenSCAD toolchain must never require a
+   change to this repo that would need a git commit.
 
 Example project folder for later validation (no generation effort in this
 packet): `C:\Users\wassi\OneDrive\Partage Wassim Mezri\cache-barriere` —
@@ -71,15 +73,15 @@ gates implementation.
 | OP-505 | Validation level per model | No per-model level field; variants exist only in spec and previous plans; routine validation = analytic reference + export round-trip | high | accepted |
 | OP-506 | Project folder designation | Layered: `--project` flag > `CAD_CONTEXT_PROJECT` env > persisted pointer (`cadctx project use`) > repo mode | high | accepted |
 | OP-507 | Project folder layout | Minimal core (`project.yaml` + `cad/`); `evidence/`, `generators/`, docs as conventions; `cadctx project init` scaffolds | high | accepted |
-| OP-508 | Per-project Python code | Execute code from the project folder in place, via the repo's uv venv; `.cache` staging documented as fallback | high | accepted |
+| OP-508 | Per-project Python code | Execute trusted code in place via the repo uv environment and supported toolchain; defer speculative staging | high | accepted |
 | OP-509 | Output routing | Split: geometry + per-model measurements → project folder; command results/reports/scratch stay in repo `.cache/` | high | accepted |
-| OP-510 | Web serving from project | Per-generator artifact roots from the registry payload; web UI lists and serves project models; memoization invalidatable | high | accepted |
+| OP-510 | Web serving from project | Per-generator artifact roots; web snapshots one project at startup and requires restart to switch | high | accepted |
 | OP-511 | Naming/collisions | Best effort, no forced namespacing: user avoids conflicts; any collision stops with a clear conflict message | high | accepted |
 | OP-512 | Model SDD docs location | In the project folder; repo `plans/` reserved for cad-context itself | high | accepted |
 | OP-513 | Spec capture | Everything decided here is folded into specs in the same implementation pass | high | accepted |
 | OP-514 | Knob exposure for project generators | `exposure` block in `project.yaml`, merged with repo `exposure.json` at request time | high | accepted |
 | OP-515 | Exact removal scope (deps, probes, OpenSCAD path) | CadQuery removed entirely (code, extra, pins, override hack, probe); OpenSCAD stays live as opt-in export toolchain behind its flag/extra; rationale + easy-recovery info in README and/or spec | high | accepted |
-| OP-516 | Fate of `cadctx compare` | Repurposed as single-generator proof command **and renamed** — proposed name `cadctx verify`; family sweep dropped | high | accepted |
+| OP-516 | Fate of `cadctx compare` | Replaced by format-aware single-generator `cadctx verify`; family sweep dropped | high | accepted |
 
 ## Goal And Objectives
 
@@ -89,7 +91,8 @@ folder that needs no edits to this repository.
 
 Objectives:
 
-1. Land the accepted backend policy: build123d only in code, variants
+1. Land the accepted backend policy: build123d as the only maintained B-rep
+   backend, with OpenSCAD available only as an optional project toolchain; variants
    documented-not-maintained, dependency surface reduced accordingly.
 2. Capture regeneration recipes and rationale in a durable spec *before*
    deleting variant code, so a variant can be rebuilt easily when a checkpoint
@@ -223,10 +226,10 @@ Non-goals:
   generator contract (params model via `number()`/`integer()`/`choice()`,
   `build(params) -> BuildResult`, kernel imports inside `build`, analytic
   reference in shared math, builders write nothing). The interpreter and
-  environment are always the repo's uv venv, so execution stays within this
-  workspace's toolchain. The `.cache/projects/<name>/` staging copy is
-  specified as the documented fallback to switch on only if OneDrive sync
-  latency or file locking is observed. Trust boundary stated in the spec:
+   environment are always the repo's uv venv, so execution is limited to the
+   supported workbench toolchain; arbitrary project dependency environments are
+   not promised. The speculative staging copy is deferred unless OneDrive
+   import locking is actually observed. Trust boundary stated in the spec:
   pointing `cadctx` at a project folder means executing that folder's code.
 - **Confidence:** high. **Status:** accepted.
 
@@ -247,9 +250,9 @@ Non-goals:
   project models. Each registry entry carries its artifact root (repo cache
   for built-ins, project `cad/` for project generators); the artifact route
   resolves and confines per generator. The server's registry/paths/schema
-  memoization becomes invalidatable (dev-mode TTL or refresh hook), or a
-  project switch demands a restart *loudly* — silent staleness cost real
-  debugging time on cache-barriere.
+   server snapshots the resolved project into its environment at startup. A
+   project switch demands a clearly documented restart, preventing registry,
+   schema, generation, and artifact roots from observing different projects.
 - **Confidence:** high. **Status:** accepted.
 
 #### OP-511 — Project generator naming and collisions
@@ -337,48 +340,33 @@ Non-goals:
   drop the command; keep as-is for spec-regenerated variants only.
 - **Resolution (2026-08-16): accepted — repurpose and rename.** The family
   sweep disappears with the variants; the replacement command reports one
-  generator's kernel volume vs analytic reference vs re-imported mesh
-  volume/bounds/watertightness — the routine proof obligation of OP-505 —
-  and works on built-ins and project generators alike. Since it no longer
-  compares backends, the `compare` name goes with it: proposed name
-  **`cadctx verify`** (a naming detail settled at implementation review, not
-  a blocking decision). README command reference updated in the same pass.
+   generator's format-aware proof: analytic area plus SVG/DXF/JSON checks for
+   2D, or kernel/analytic/STEP/mesh checks for 3D. It works on built-ins and
+   project generators alike. Since it no longer compares backends, the accepted
+   command name is **`cadctx verify`**. README is updated in the same pass.
 - **Confidence:** high. **Status:** accepted.
 
 ## Implementation Phases
 
-All open points are resolved; phases run in order. Phase 1 precedes phase 2
-so regeneration recipes are captured before any deletion.
+All open points are resolved; new capability is proven additively before the
+old variants are removed.
 
-1. **Spec landing.** Write `specifications/backend-policy/spec.md` (default
-   backend, rationale for what was kept, regeneration recipes for the dropped
-   variants and for CadQuery recovery, OpenSCAD opt-in export terms with the
-   `.scad`-authorship nuance) and
-   `specifications/model-projects/spec.md` (project contract OP-506…512 +
-   lean per-model SDD workflow). Update `AGENTS.md`, `WORKFLOW.md`,
-   `README.md`, and the workspace-layout / agent-interface / web-app specs —
-   including the narrowed multitudes rewrite. Recipes are captured **before**
-   any deletion.
-2. **Variant removal.** Delete `bracket_cadquery.py`, `bracket_openscad.py`,
-   `wing_cadquery.py`, their registry entries, exposure entries, and tests;
-   remove CadQuery completely (extra, numba pin, OCP override hack, backend
-   probe) while keeping the OpenSCAD toolchain live per OP-515; materialize
-   the `default` extra; replace `compare` with the renamed single-generator
-   proof command (`cadctx verify`, OP-516) and update the README command
-   reference; full `pytest` + `ruff` green on the slimmed tree.
-3. **Project workspace core.** Resolution chain (OP-506),
-   `cadctx project use/clear/init/info`, layout contract (OP-507), split
-   output routing through `workspace.py` (OP-509), all reported by
-   `cadctx paths`.
-4. **Project generators.** In-place dynamic loading per OP-508, merged
-   registry with hard-stop collision messages (OP-511), fixture project under
-   `tests/` exercised with `CAD_CONTEXT_CACHE` redirected.
-5. **Web serving.** Per-generator artifact roots, project grouping in the UI,
-   memo invalidation or loud restart requirement (OP-510), `project.yaml`
-   exposure merge (OP-514).
-6. **Dry validation.** Point the workbench at the real cache-barriere folder:
-   `cadctx project use` → `init` → `generators`/`paths`/web listing all
-   correct. No model implementation — that is a future project-side packet.
+1. **Contracts.** Land backend-policy and model-project specs; update existing
+   specs and resolve the supported-toolchain, format-aware verification, and
+   web process-lifetime contracts.
+2. **Project core.** Implement precedence plus `--no-project`, no-clobber/dry-run
+   initialization, lifecycle commands, manifest validation, lazy trusted module
+   loading, collisions, project-owned artifacts, and copied temporary fixtures.
+3. **Verification and cleanup.** Add format-aware `cadctx verify`, replace STEP
+   re-import with build123d, add an OpenSCAD project smoke fixture, then remove
+   CadQuery and the duplicate variant generators/dependencies/tests.
+4. **Web integration.** Carry project exposure and artifact roots through CLI
+   payloads, snapshot one project per server process, confine real artifact
+   paths, group project generators, and simplify the built-in single-backend UI.
+5. **Documentation and proof.** Update README, AGENTS, WORKFLOW, specs, Python
+   tests, and web checks/build; regenerate the dependency lock.
+6. **Real-folder validation.** Run `project init --dry-run` against the real
+   cache-barriere evidence folder, without modifying it or generating a model.
 
 ## Dependencies And Risks
 
@@ -389,8 +377,8 @@ so regeneration recipes are captured before any deletion.
 - **OneDrive as a project home:** paths with spaces (already true of the
   example), possible accents, sync-induced file locks during import/export,
   sync latency on fresh artifacts. Mitigations: quoting discipline, atomic
-  write-then-rename, and the OP-508 staging fallback. Unmeasured until
-  phase 6.
+   write-then-rename and no bytecode writes in the synced project. Staging is
+   deferred unless import locking is observed. Unmeasured until phase 6.
 - **Stale server metadata** is a known trap (handoff): any project switch
   must either invalidate the webapp memos or demand a restart loudly.
 - **Latency debt (OP-204 carry-forward):** per-request `uv` + OCCT import
@@ -412,18 +400,19 @@ Implementation:
 
 - Fresh `uv sync --extra default` resolves without CadQuery/numba/OCP
   override baggage; `pytest` + `ruff` green on the slimmed tree.
-- No variant backend model code and no CadQuery trace remain in the tree;
+- No variant backend model code, CadQuery runtime dependency, probe, or
+  registered generator remains in the tree;
   the OpenSCAD toolchain still provisions and degrades correctly; the
   backend-policy spec (and/or README) contains the rationale and a
   regeneration recipe judged sufficient to rebuild a variant without
   consulting git history.
-- The renamed proof command (`cadctx verify` or the name settled at review)
-  is documented in README and passes on the built-in generators.
-- A fixture project proves: resolution chain, in-place generator loading,
+- The format-aware `cadctx verify` command is documented and passes on built-in
+  2D and 3D generators.
+- A fixture copied to a temporary project proves: resolution chain, in-place generator loading,
   collision hard-stop with a clear message, artifact routing to
   `<project>/cad/`, and web listing/serving from a project — under redirected
   cache.
-- The real cache-barriere folder passes the phase-6 dry validation.
+- The real cache-barriere folder passes non-writing phase-6 dry validation.
 - Specs, `AGENTS.md`, `WORKFLOW.md`, `README.md` updated in the same pass; no
   capability exists that is not reachable through a documented `cadctx`
   command.

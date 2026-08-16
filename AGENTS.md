@@ -1,218 +1,164 @@
 # Agent Guidance
 
-Read this before doing anything in this repository. It tells you which surfaces
-to use, where output is allowed to go, and what proof a change owes. The
-binding contracts behind these rules live in [specifications/](specifications/);
-this file is the operational summary.
+Read this before doing anything in the repository. Binding contracts live in
+`specifications/`; this is the operational summary.
 
 ## Start Here
 
-Orient with three commands before touching code — each writes a result file you
-can re-read instead of re-running:
+Run these before touching code; each writes a result that can be re-read:
 
 ```bash
-uv run cadctx info          # backends installed, binaries resolved
-uv run cadctx generators    # what can be generated, in which formats
-uv run cadctx paths         # where everything is written
+uv run cadctx info
+uv run cadctx generators
+uv run cadctx paths
 ```
 
-Machine-readable answers are in `.cache/results/<command>.json` under `data`.
-`.cache/results/last.json` is always the most recent command.
+Machine-readable answers are under `.cache/results/`; `last.json` is the newest.
 
-## Two Surfaces, One Rule Each
+## Two Surfaces
 
-### 1. The `cadctx` CLI — for anything that produces artifacts
+### `cadctx` produces artifacts
 
-`cadctx` is the single documented interface, for humans and agents alike. Every
-capability is a subcommand documented in [README.md](README.md). **A capability
-that is not reachable through a documented `cadctx` command is not delivered.**
+`cadctx` is the documented interface for humans and agents. A capability not
+reachable through a documented command is not delivered. Add a command and its
+README entry together. Use `--json` to parse output and `--quiet` for only the
+result path.
 
-- Adding a capability means adding a command *and* its README entry in the same
-  pass.
-- Do not create agent skills, plugin manifests, or tool-specific wrappers.
-  Routing lives in `README.md`, this file, and `WORKFLOW.md` — plain files any
-  agent can read.
-- Use `--json` when you want to parse a command's output directly; use
-  `--quiet` when you only need the result path.
+The preview server is started only with `cadctx web`; do not serve with pnpm or
+add a second long-running Python service.
 
-Starting the preview web app is a command like any other: `cadctx web` installs
-what is missing, starts the Astro server and prints the URL. Do not run `pnpm`
-by hand to serve it, and do not add a second long-running Python process — the
-app's pages call this CLI per request.
+### `cad_context.api` answers questions
 
-### 2. The Python API — for questions, never for artifacts
-
-`cad_context.api` is available whenever you want numbers, a schema, or a live
-kernel object. It is side-effect free: **no files, no console output, no
-workspace writes.**
+The Python API returns data or native objects without files or console output:
 
 ```python
 from cad_context import api
 
-api.generators()                              # registry as data
-api.schema("plate2d")                         # parameter contract
-api.metrics("bracket-cadquery", width=120)    # volume, area, bounds
-api.compare(width=120)                        # cross-backend volumes
-part = api.build("bracket-build123d").native  # live build123d object
+api.generators()
+api.schema("plate2d")
+api.metrics("bracket-build123d", width=120)
+part = api.build("bracket-build123d").native
 ```
 
-Writing a throwaway script to explore is expected and encouraged. Put it in
-`.cache/scratch/` and run it with `uv run python .cache/scratch/<name>.py`. If
-that script needs artifacts on disk, either call the CLI or call
-`cad_context.exchange.export(...)` explicitly — artifacts are never a side
-effect of asking a question.
+Throwaway scripts go in `.cache/scratch/`. Files require the CLI or an explicit
+`cad_context.exchange.export(...)` call.
 
-## Where Output Is Allowed To Go
+## Output Locations
 
-Everything a run produces lands under the git-ignored `.cache/`:
+Operational output stays under `.cache/`:
 
 | Path | Contents |
 | --- | --- |
-| `.cache/results/<command>.json` / `.md` | one small summary per command, overwritten each run |
-| `.cache/reports/<command>.log` | long output (tracebacks, subprocess logs) |
-| `.cache/cad/<generator>/<generator>.<ext>` | geometry, at fixed paths |
-| `.cache/scratch/` | your throwaway scripts |
-| `.cache/downloads/`, `.tools/` | fetched archives and unpacked binaries |
+| `.cache/results/` | bounded command JSON/Markdown summaries |
+| `.cache/reports/` | tracebacks and long subprocess logs |
+| `.cache/cad/` | built-in geometry at fixed paths |
+| `.cache/scratch/`, `.cache/downloads/` | experiments and downloads |
+| `.tools/` | provisioned external binaries |
 
-Rules that are not negotiable:
+An active project's generator artifacts instead use fixed paths under
+`<project>/cad/<generator>/`, including `<generator>.measurements.json`.
+Operational results remain in the repository cache. Never write generated files
+into `src/`, `plans/`, `specifications/`, or the repository root. Never commit
+`.cache/`, `.tools/`, or generated project geometry.
 
-- Never write generated files into `src/`, `plans/`, `specifications/`, or the
-  repository root. Never commit anything under `.cache/` or `.tools/`.
-- **Geometry paths are fixed**, derived from the generator id alone. Do not add
-  timestamps, hashes, or run counters to filenames: a viewer or browser tab
-  holds one URL across a whole parameter-iteration session. Use `--out-dir`
-  only when several variants must genuinely coexist.
-- **Keep the console quiet.** Commands print a status line, a few facts and a
-  result path. Anything long goes to `.cache/reports/` and is referenced by
-  path. If you add output, add it to the result file, not to the terminal.
-- Redirect the cache with `CAD_CONTEXT_CACHE` rather than writing into the real
-  one from tests.
+Use `CAD_CONTEXT_CACHE` to redirect tests. Tests using a project fixture copy it
+to `tmp_path`; redirecting the cache does not redirect project output.
 
-## Multitudes, Not Monoculture
+Paths are stable and atomic. Do not introduce timestamps, hashes, or counters.
+Use `--out-dir` only when several variants genuinely coexist. Keep the console
+quiet; long content belongs in results or reports.
 
-This repository deliberately keeps multiple backends alive in parallel. When a
-task could be solved by picking a winner, don't:
+## Backend Focus
 
-- Add capability to *each* relevant backend, or state plainly which ones you
-  left out and why.
-- Shared behavior is defined by exchange formats (STEP, STL, GLB, SVG, DXF),
-  never by one backend's object model. Nothing outside a backend module may
-  interpret that backend's native objects.
-- The three bracket generators build the same part three ways on purpose, and
-  so do the two wing lofts. Keep the constructions inside a family equivalent —
-  compute the shared geometry once in `models.py` and let each backend only
-  drive its kernel — so the cross-backend volume comparison stays meaningful.
-- Where several real implementations exist, the web app offers all of them and
-  lets the user switch. Never ship a faster approximation in place of one: a
-  slow backend gets a spinner, not a stand-in
-  (`specifications/web-app/spec.md`).
+build123d is the single maintained 3D B-rep backend. Shapely owns 2D geometry,
+trimesh owns mesh inspection/GLB bridging, and OpenSCAD remains an optional
+project authoring toolchain for SCAD/Customizer or independent CSG delivery.
+Do not add routine duplicate builders across backends.
 
-## Adding A Generator
+Keep shape parameters, derived geometry, and analytic references independent of
+the kernel. Native objects stay inside their generator/exporter boundary;
+shared behavior is defined by STEP, STL, GLB, SVG, DXF, JSON, and SCAD.
 
-1. Put the parameter model in `src/cad_context/generators/models.py` using
-   `number()` / `integer()` / `choice()`, with ranges, steps, units and
-   descriptions on every field. Add the analytic formula for its volume or area
-   in the same module — that value is the reference the exports are checked
-   against, and it must not depend on any kernel.
-2. Write the builder in `src/cad_context/generators/<name>.py` exposing
-   `build(params) -> BuildResult`. It returns the native object plus metrics
-   and **writes nothing**. Import the CAD kernel inside `build`, never at module
-   level.
-3. Register a `GeneratorSpec` in `src/cad_context/generators/__init__.py` with
-   its id, kind, backend, formats, description and **family**. Generators that
-   build the same part on different backends share a family — that is what
-   `cadctx compare --family <name>` sweeps, and what lets the web app offer
-   them as a selector.
-4. Make sure `cad_context.exchange` can write every format you declared. If the
-   generator has curves worth plotting, publish a `payload` alongside `native`
-   and declare the `json` format; the exporter writes it verbatim.
-5. Add tests: the generator's measured output against the analytic reference,
-   and an export round-trip that loads each file back.
-6. Update the generator table and, if you added a command, the command
-   reference in `README.md`.
+An additional backend is a project-scoped, risk-triggered exception. Follow
+`specifications/backend-policy/spec.md`; do not add it to the core dependency
+surface without an accepted workbench-level plan.
 
-Defaults alone must produce a valid shape — every generator has to be runnable
-with no parameters.
+## External Model Projects
 
-## Touching The Web App
+New model-specific evidence, specs, plans, code, tests, and durable artifacts
+belong in an external project folder. For supported build123d/Shapely/OpenSCAD
+projects, working on a model requires no repository edit.
 
-`webapp/` is a preview surface, not a second implementation. Two rules decide
-most questions there (the rest are in `specifications/web-app/spec.md`):
+Initialize before selection:
 
-- **Ask the CLI.** Anything about shapes — the registry, a schema, a fresh
-  artifact — comes from a `cadctx … --json` subprocess in a server handler.
-  Never re-derive geometry, parameter ranges or paths in TypeScript.
-- **Expose a few knobs, deliberately.** `webapp/config/exposure.json` lists the
-  parameter *names* each generator publishes; the endpoint rejects everything
-  else. Adding a parameter to a generator does not put it on the API — adding
-  its name there does. Never copy a range, unit or default into that file.
+```bash
+uv run cadctx project init <path>
+uv run cadctx project use <path>
+```
 
-## Adding An External Tool
+Use global `--project <path>` for one command and `--no-project` to force
+repository mode. Selecting a project trusts its Python code. The manifest,
+loader, collision, and output contracts are in
+`specifications/model-projects/spec.md`.
 
-Declare it in `config/artifacts.yaml` (source, pinned tag, per-platform asset
-pattern, install dir, executable path). Do not write new fetch code, and do not
-document a manual install: `cadctx fetch <name>` provisions any declared tool.
-A missing binary must degrade — emit what the Python side can, record the
-skipped formats with a reason, report `degraded` — never crash.
+A project generator declares its module and `ShapeParams` subclass in
+`project.yaml`; its module exposes `build(params) -> BuildResult`. Import kernels
+inside `build`, write nothing from the builder, publish an analytic reference,
+and ensure defaults produce a valid shape.
+
+## Web App
+
+`webapp/` is a preview surface, never a second geometry implementation.
+
+- Ask `cadctx --json` for registry, schema, paths, and fresh artifacts.
+- Built-in editable names live in `webapp/config/exposure.json`; project names
+  live in `project.yaml`. Never copy ranges, units, or defaults there.
+- One server process snapshots one active project. Restart to switch.
+- Serve artifacts only from each registry entry's confined artifact root.
+- A slow real generator gets a spinner, never an approximation.
+
+## External Tools
+
+Declare external binaries in `config/artifacts.yaml`; `cadctx fetch <name>` is
+the only provisioning path. Missing tools degrade with explicit skipped formats
+instead of crashing.
 
 ## Proof Obligations
 
-"It ran" is not proof. For geometry work, proof means measurement:
+Geometry proof means measurement:
 
-- load every export back (mesh volume, watertightness, bounds; STEP re-imported
-  through a kernel; DXF re-read for polyline counts, bounds and units);
-- compare against the analytic reference — 1e-6 relative for kernel volumes,
-  1% for tessellated or faceted ones;
-- run `uv run pytest` and `uv run ruff check .` before declaring done;
-- record commands, expected and actual results in the packet's `test.md`.
+- re-import STEP through build123d;
+- load meshes and check volume, bounds, watertightness, vertices, and faces;
+- re-read DXF/SVG/JSON and check structure, bounds, and units;
+- compare exact 3D kernel/reference values at 1e-6 relative and tessellated,
+  faceted, 2D-approximated, or explicitly approximate values at 1%;
+- run `cadctx verify <generator>` for delivered generators;
+- run `uv run pytest` and `uv run ruff check .`;
+- run the web check, tests, and build when web surfaces change;
+- record commands, expected/actual results, and gaps in the packet `test.md`.
 
 ## Git
 
-The maintainer owns all git operations. Do not run `git add`, `git commit`,
-`git push`, or any other history-changing command. Leave finished work in the
-working tree.
+The maintainer owns git operations. Do not run `git add`, `git commit`, `git
+push`, or any other history-changing command. Leave finished work in the working
+tree.
 
 ## Spec And Planning Workflow
 
-Use `specifications/` for stable, spec-driven requirements and `plans/` for
-time-bounded planning packets.
+Use `specifications/<slug>/spec.md` for durable requirements and
+`plans/YYYY-MM/DD-<slug>/` for time-bounded work. Every packet has `plan.md` and
+`test.md`. Create `implementation.md` only after implementation begins. Create
+`survey.md` only when explicitly requested.
 
-- Store durable specifications under `specifications/<slug>/spec.md` when the
-  work needs requirements that should outlive one implementation pass.
-- Store planning work under `plans/YYYY-MM/DD-<slug>/`. Use a `YYYY-MM` month
-  folder plus a `DD-<slug>` packet folder, where `DD` is the two-digit day the
-  plan packet starts and `<slug>` is a short lowercase title.
-- Every dated plan folder must contain `plan.md` and `test.md`.
-- Create `implementation.md` only after implementation work has actually
-  happened, to log facts really implemented. Never create it upfront as a
-  stub during planning.
-- Add `survey.md` only when the maintainer explicitly asks for a survey, not
-  as a default step before planning.
-- Keep `plan.md` focused on approved scope, milestones, dependencies, and exit
-  criteria. Do not turn unreviewed survey notes into committed scope.
-- Keep `implementation.md` as a running log of changes made, important
-  decisions, deviations from the plan, and follow-up risks. Open it with a
-  short **Progress** section (a filled/empty-block bar plus current phase, or
-  `Done` when finished) and keep that bar current on every change.
-- Keep `test.md` as proof of working behavior: commands run, fixtures used,
-  expected and actual results, and any gaps that remain untested.
+`plan.md` holds approved scope, milestones, dependencies, risks, exit criteria,
+and stable open points (`OP-001`, etc.) with candidates, proposal, confidence,
+and status. Do not silently collapse an unresolved choice.
 
-When a plan changes during implementation, update the packet folder so the
-spec, plan, implementation notes, and test proof remain consistent.
+`implementation.md` opens with a current filled/empty-block Progress line and
+records changes, decisions, deviations, risks, and commands actually performed.
+`test.md` records fixtures, commands, expected/actual results, and remaining
+gaps. Update the packet whenever implementation changes its plan.
 
-Whenever the maintainer states a strategy, policy, contract, or wisdom-level
-rule — or work settles such a decision — fold it into the relevant spec in the
-same pass, not only into a plan.
-
-## Repository-Specific Rules
-
-- **Never collapse options prematurely.** This repository deliberately keeps
-  multiple generator backends and multiple visualization paths alive side by
-  side (e.g. CadQuery *and* build123d *and* OpenSCAD). When a plan needs a
-  choice, record it as an open point with candidates, a proposal, a confidence
-  level, and a status — do not silently pick one and drop the rest.
-- Track open design decisions with stable IDs (`OP-001`, …), each carrying:
-  the question, the candidate options, the current proposal, a confidence
-  level (`high` / `medium` / `low`), and a status (`open` / `proposed` /
-  `accepted` / `rejected`). Record the resolution only when the maintainer
-  accepts it.
+Fold every settled strategy, policy, or contract into the relevant durable spec
+in the same pass. Repository `plans/` is for workbench changes; model SDD
+documents live in their project folder.
