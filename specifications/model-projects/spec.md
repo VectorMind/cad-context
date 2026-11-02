@@ -124,6 +124,8 @@ entry and each declared file's availability without importing project code.
 Paths use forward slashes, remain relative to the project, and cannot contain
 empty, dot or parent components, backslashes or drive prefixes. Presentation
 types are HTML, SVG, PNG/JPEG/WebP, PDF, STEP/STP, STL, GLB, 3MF, JSON and DXF.
+Explicitly listed historical F3D archives may also be downloaded; this adds no
+Fusion runtime or authoring support.
 The web `/project` page shows generated models, declared images and the existing
 portfolio in a sandboxed frame. `/project/files/` serves only declared files,
 including the entry, after realpath confinement checks. HTML and SVG responses

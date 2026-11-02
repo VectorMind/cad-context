@@ -134,6 +134,7 @@ class PortfolioDeclaration(BaseModel):
             ".3mf",
             ".json",
             ".dxf",
+            ".f3d",  # Historical native archives: download only, no runtime dependency.
         }:
             raise ValueError("unsupported portfolio file type")
         return value

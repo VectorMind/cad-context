@@ -8,6 +8,7 @@ const generators = (await listGenerators()).filter((g) => g.origin === 'project'
 const portfolio = project.portfolio;
 const fileUrl = (path: string) => '/project/files/' + path.split('/').map(encodeURIComponent).join('/');
 const images = portfolio?.files.filter((f) => f.available && /\.(svg|png|jpe?g|webp)$/i.test(f.path)) ?? [];
+const reports = portfolio?.files.filter((f) => f.available && /\.(json|pdf)$/i.test(f.path)) ?? [];
 ---
 <Layout title={project.name ?? 'Project'} crumb="Project portfolio">
   <div class="portfolio">
@@ -18,11 +19,13 @@ const images = portfolio?.files.filter((f) => f.available && /\.(svg|png|jpe?g|w
     <div class="review-grid">
       {generators.map((g) => <section class="review-card">
         <h3><a href={`/viewer/${g.id}`}>{g.title}</a></h3>
+        {g.description && <p>{g.description}</p>}
         {g.formats.includes('glb') && <div class="model"><ModelView client:visible url={`/api/artifact/${g.id}/${g.id}.glb`} format="glb" wireframe={false} showGrid={false} fitToken={0} /></div>}
         <p>{g.formats.map((format) => <a class="download" href={`/api/artifact/${g.id}/${g.id}.${format}`}>{format.toUpperCase()}</a>)}</p>
       </section>)}
     </div>
     <h2 id="drawings">Drawings and evidence</h2>
+    {reports.length > 0 && <p>{reports.map((f) => <a class="download" href={fileUrl(f.path)} target="_blank">{f.path.split('/').pop()}</a>)}</p>}
     <div class="review-grid">{images.map((f) => <figure><a href={fileUrl(f.path)} target="_blank"><img src={fileUrl(f.path)} alt={f.path.split('/').pop()} loading="lazy" /></a><figcaption>{f.path}</figcaption></figure>)}</div>
     <h2 id="portfolio">Existing project portfolio</h2>
     <p>The portfolio below preserves prior project reviews. Its historical statuses do not establish parity for the current reconstruction above.</p>

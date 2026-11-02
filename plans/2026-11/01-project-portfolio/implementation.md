@@ -1,4 +1,4 @@
-Progress: ■□□ — implementation begun.
+Progress: ■■■ — portfolio implementation and native checks complete; model parity remains separate and unresolved.
 
 2026-11-01: Inspected CLI project metadata, manifest, existing artifact route and
 ModelView. Native startup passed. Chosen explicit portfolio allowlist to preserve
@@ -14,3 +14,11 @@ Real curved model export exposed a generic bounds bug: coordinate-relative mesh
 tolerance rejected a tessellated extremum near zero. Added a shared extent-based
 absolute budget capped by tessellation deflection, with translation-invariance
 regression. This leaves historical parity and STEP tolerances unchanged.
+
+2026-11-02: Final checks: 112 pytest passed / 2 skips, Ruff clean, 11 web tests,
+zero type diagnostics and successful production build. Historical F3D links are
+explicit download-only entries, with no Fusion runtime. Existing HTML remains
+unchanged. The page distinguishes historical statuses from current draft models.
+Verified actual Chrome GLB/SVG/HTML rendering and corrected viewport height and
+UTF-8 bridge output. Added JSON/PDF evidence links. Workbench sources remain in
+the working tree; no git history operations.
