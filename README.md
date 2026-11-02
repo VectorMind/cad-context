@@ -8,11 +8,13 @@ project folders with their evidence, code, measurements, and stable artifacts.
 ## Install
 
 ```powershell
-uv sync --extra default
+uv sync
 ```
 
-The `default` extra contains build123d, mesh, and vector2d support. Add the
-optional OpenSCAD authoring package and provision its external renderer with:
+This installs build123d, mesh, and vector2d support, including Shapely, for
+both the CLI and web preview. The older `default`, `build123d`, `mesh`, and
+`vector2d` extras remain accepted for compatibility. Add the optional OpenSCAD
+authoring package and provision its external renderer with:
 
 ```powershell
 uv sync --extra all
@@ -20,6 +22,18 @@ uv run cadctx fetch openscad
 ```
 
 Missing optional tools degrade cleanly and are reported by `cadctx info`.
+
+When using this checkout from both Windows and WSL, keep `.venv` for Windows.
+Before running any `uv` commands in a WSL shell, select a Linux environment:
+
+```bash
+export UV_PROJECT_ENVIRONMENT="$PWD/.cache/scratch/venv-linux"
+uv sync
+```
+
+Repeat the export in each new WSL shell. Virtual environments cannot be shared
+between Windows and Linux; separate environments let both use the same source
+checkout without replacing each other's packages or executable links.
 
 ## Start Here
 
@@ -117,6 +131,29 @@ outputs. For 2D it checks analytic area plus SVG/DXF/JSON structure and units.
 Missing optional external tools produce `degraded`; a failed required check is
 an error.
 
+Geometry-only 3MF is available for a single build123d solid:
+
+```bash
+uv run cadctx generate bracket-build123d -f 3mf
+uv run cadctx verify bracket-build123d -f 3mf
+```
+
+Declare `formats: [3mf]` (or include it beside STEP/STL/GLB) in a build123d
+project generator to make it part of default generation and verification.
+Built-in defaults stay STEP/STL/GLB. Both commands accept repeated `-f` options
+for explicit format selection. `cadctx --json info` lists supported exchange
+formats.
+
+3MF uses explicit millimetres, Z-up, and native tessellation at 0.01 mm / 0.1 rad.
+Each artifact contains one printable mesh and one build item, with no slicer
+profile. Multiple solids are rejected; separate physical pieces use separate
+project generators. Package references, instance transforms, mesh topology,
+signed volume and bounds are checked on the actual 3MF. Invalid geometry fails
+before replacing a previous file, including with `--no-measure`. Missing runtime
+support is reported as a skip during generation; verification fails when a
+requested/declared required artifact is missing. Optional OpenSCAD rendering
+continues to produce `degraded` when its external tool is absent.
+
 Run all available generators with defaults:
 
 ```powershell
@@ -161,7 +198,7 @@ Return the complete parameter, format, origin, exposure, and artifact contract.
 
 Build, export, and by default re-read one generator's declared artifacts.
 
-### `cadctx verify <generator> [-p key=value] [--tolerance 0.01]`
+### `cadctx verify <generator> [-p key=value] [-f format] [--tolerance 0.01]`
 
 Apply the generator's analytic and format-aware proof obligations.
 
@@ -185,6 +222,12 @@ Remove the persisted pointer. It does not delete the project.
 ### `cadctx project info`
 
 Report active project metadata without importing generator code.
+An optional `portfolio: {entry: PORTFOLIO.html, files: [images/overview.svg]}`
+in `project.yaml` exposes explicitly listed presentation files and availability
+in the JSON result. With `cadctx web`, open `/project` for the portfolio, SVGs,
+images and interactive generated models. Paths are project-relative, use forward
+slashes, and are confined to the project. The HTML entry is sandboxed; model
+downloads continue to use the generator artifact routes.
 
 ### `cadctx fetch [<tool>|--all|--list]`
 

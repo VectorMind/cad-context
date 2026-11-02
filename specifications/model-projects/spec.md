@@ -110,6 +110,34 @@ and serves each generator only from its declared, confined artifact root.
 
 ## Project Documentation
 
+An optional `portfolio` declaration publishes an HTML entry and an explicit list
+of presentation files, for example:
+
+```yaml
+portfolio:
+  entry: PORTFOLIO.html
+  files: [images/overview.svg, exports/review.step]
+```
+
+`cadctx --json project info` exposes the
+entry and each declared file's availability without importing project code.
+Paths use forward slashes, remain relative to the project, and cannot contain
+empty, dot or parent components, backslashes or drive prefixes. Presentation
+types are HTML, SVG, PNG/JPEG/WebP, PDF, STEP/STP, STL, GLB, 3MF, JSON and DXF.
+The web `/project` page shows generated models, declared images and the existing
+portfolio in a sandboxed frame. `/project/files/` serves only declared files,
+including the entry, after realpath confinement checks. HTML and SVG responses
+are sandboxed; neither may access the app origin or remote scripts. Generated
+models retain the existing generator artifact routes and confinement.
+
 Model-specific evidence, spec, plan, implementation log, test proof, and
 handoff live in the project folder. Repository `plans/` is reserved for changes
 to the workbench itself.
+
+## Format Declarations
+
+Declared formats must match the generator's 2D/3D kind. `3mf` is supported only
+for build123d generators and opts the generator into the single-piece contract
+in `specifications/3mf-export/spec.md`. Separate pieces declare separate
+generators; their 3MF files and measurement sidecars stay under their respective
+project artifact directories.

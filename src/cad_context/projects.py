@@ -92,6 +92,53 @@ class GeneratorDeclaration(BaseModel):
         return value
 
 
+class PortfolioDeclaration(BaseModel):
+    """Explicit public presentation files, relative to the project root."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entry: str
+    files: list[str] = Field(default_factory=list)
+
+    @field_validator("entry")
+    @classmethod
+    def valid_entry(cls, value: str) -> str:
+        return cls.safe_path(value)
+
+    @field_validator("files")
+    @classmethod
+    def valid_files(cls, values: list[str]) -> list[str]:
+        return [cls.safe_path(value) for value in values]
+
+    @staticmethod
+    def safe_path(value: str) -> str:
+        if (
+            not value
+            or "\\" in value
+            or ":" in value
+            or any(part in ("", ".", "..") for part in value.split("/"))
+        ):
+            raise ValueError("portfolio paths must be confined relative POSIX paths")
+        if Path(value).suffix.lower() not in {
+            ".html",
+            ".svg",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+            ".pdf",
+            ".step",
+            ".stp",
+            ".stl",
+            ".glb",
+            ".3mf",
+            ".json",
+            ".dxf",
+        }:
+            raise ValueError("unsupported portfolio file type")
+        return value
+
+
 class ProjectManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -100,6 +147,19 @@ class ProjectManifest(BaseModel):
     description: str = ""
     generators: list[GeneratorDeclaration] = Field(default_factory=list)
     exposure: dict[str, Exposure] = Field(default_factory=dict)
+    portfolio: PortfolioDeclaration | None = None
+
+    @model_validator(mode="after")
+    def valid_format_contracts(self):
+        from .exchange import FORMAT_KIND
+
+        for generator in self.generators:
+            for fmt in generator.formats:
+                if FORMAT_KIND.get(fmt) != generator.kind:
+                    raise ValueError(f"unsupported {generator.kind} format {fmt!r}")
+                if fmt == "3mf" and generator.backend != "build123d":
+                    raise ValueError("3mf requires the build123d backend")
+        return self
 
     @field_validator("name")
     @classmethod
@@ -256,7 +316,22 @@ def describe(path: Path | None = None) -> dict[str, Any]:
         "description": manifest.description,
         "generator_ids": [generator.id for generator in manifest.generators],
         "cad": str((root / "cad").resolve()),
+        "portfolio": portfolio_metadata(root, manifest),
     }
+
+
+def portfolio_metadata(root: Path, manifest: ProjectManifest) -> dict[str, Any] | None:
+    """Describe only explicitly published files; never import project Python."""
+    if manifest.portfolio is None:
+        return None
+    names = list(dict.fromkeys([manifest.portfolio.entry, *manifest.portfolio.files]))
+    files = []
+    for name in names:
+        target = (root / name).resolve()
+        if not target.is_relative_to(root.resolve()):
+            raise ProjectError(f"portfolio file escapes project: {name}")
+        files.append({"path": name, "available": target.is_file()})
+    return {"entry": manifest.portfolio.entry, "files": files}
 
 
 def _namespace(root: Path) -> str:

@@ -5,6 +5,23 @@ Read this before doing anything in the repository. Binding contracts live in
 
 ## Start Here
 
+Before any `uv` command, select an environment for the operating system running
+the command. In a checkout shared with Windows, `.venv` belongs to Windows.
+Linux/WSL agents must set a separate environment in every shell invocation:
+
+```bash
+export UV_PROJECT_ENVIRONMENT="$PWD/.cache/scratch/venv-linux"
+```
+
+Apply this before the startup commands below, installation, tests, lint, and
+`cadctx web`; child processes must inherit it. An existing isolated Linux
+validation environment may be reused. Never let Linux/WSL `uv` create, sync,
+replace, or remove the shared `.venv`, even if it appears missing or broken.
+Do not use `uv --active` to select a Windows environment from Linux. If `uv`
+reports an incompatible environment, select a separate path instead of
+recreating the other platform's environment. Keep environment overrides out of
+shared `pyproject.toml` configuration so plain Windows `uv sync` stays unchanged.
+
 Run these before touching code; each writes a result that can be re-read:
 
 ```bash

@@ -114,7 +114,10 @@ export function cadctx(args: string[], timeoutMs = 180_000): Promise<CadctxResul
     execFile(
       file,
       argv,
-      { cwd: repoRoot(), timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
+      {
+        cwd: repoRoot(), timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, windowsHide: true,
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+      },
       (error, stdout, stderr) => {
         let payload: CadctxResult | undefined;
         try {
@@ -172,6 +175,18 @@ export function listGenerators(): Promise<GeneratorInfo[]> {
 
 export function generatorSchema(id: string): Promise<GeneratorSchema> {
   return once(`schema:${id}`, async () => (await cadctx(['schema', id])).data as GeneratorSchema);
+}
+
+export interface ProjectInfo {
+  active: boolean;
+  project: string | null;
+  name?: string;
+  description?: string;
+  portfolio?: { entry: string; files: { path: string; available: boolean }[] } | null;
+}
+
+export async function projectInfo(): Promise<ProjectInfo> {
+  return (await cadctx(['project', 'info'])).data as ProjectInfo;
 }
 
 /**

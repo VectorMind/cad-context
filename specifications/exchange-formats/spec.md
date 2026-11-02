@@ -9,7 +9,7 @@ millimetres; 3D is Z-up; 2D is Y-up on the generator's declared datum.
 | Generator path | Required outputs | Additional output |
 | --- | --- | --- |
 | 2D Shapely | SVG and DXF | JSON coordinate payload when useful |
-| 3D build123d B-rep | STL and GLB | STEP |
+| 3D build123d B-rep | STL and GLB | STEP, opt-in single-piece 3MF |
 | Optional OpenSCAD project | SCAD source | STL and GLB when its binary resolves |
 
 GLB is derived from STL through trimesh. STEP is the lossless B-rep interchange
@@ -28,6 +28,8 @@ Every generated format is re-read when measurement is enabled:
 
 - STL/GLB: volume, area, watertightness, bounds, vertices, and faces;
 - STEP: build123d re-import, volume, area, and bounds;
+- 3MF: independent ZIP/XML resource/build/unit inspection and trimesh topology,
+  signed volume, bounds, vertices and faces after applying the build transform;
 - DXF: units, polyline/vertex counts, and bounds;
 - SVG: view box and path structure;
 - JSON: units and curve/point/marker counts.
@@ -54,3 +56,22 @@ The optional JSON artifact contains generator-owned coordinates and annotations,
 not viewer-derived geometry. Coordinates use millimetres on the same datum as
 SVG, DXF, and any associated 3D sections. Measurements remain separate from
 geometry payloads.
+
+## Single-Piece 3MF
+
+Build123d Mesher/lib3mf writes directly from one native solid with explicit
+millimetre units and the shared tessellation tolerances. A fresh Mesher is used
+per artifact. Exactly one mesh and one direct printable build item are required;
+valid unused component resources produced by Mesher are permitted. Multiple
+solids fail; physical pieces use separate generators. No slicer profile or
+new backend is introduced. See `specifications/3mf-export/spec.md`.
+
+Independent package and topology validation happens before atomic replacement,
+even when optional measurement reporting is disabled. Invalid geometry raises
+an error and preserves the previous artifact. Missing runtime support is an
+explicit generation skip; missing requested/declared B-rep artifacts make
+verification fail. Only OpenSCAD STL/GLB rendering is an optional external skip.
+`verify -f 3mf` selects 3MF explicitly, while project declarations include it in
+default verification. Its volume must match native and analytic values within
+1%; bounds must match native values at 1% relative or 1e-6 mm absolute near zero.
+Accompanying STL measurements never substitute for 3MF measurements.

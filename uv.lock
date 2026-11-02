@@ -76,45 +76,25 @@ name = "cad-context"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "build123d" },
+    { name = "drawsvg" },
+    { name = "ezdxf" },
+    { name = "manifold3d" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "rich" },
+    { name = "shapely" },
+    { name = "trimesh" },
     { name = "typer" },
 ]
 
 [package.optional-dependencies]
 all = [
-    { name = "build123d" },
-    { name = "drawsvg" },
-    { name = "ezdxf" },
-    { name = "manifold3d" },
-    { name = "shapely" },
     { name = "solidpython2" },
-    { name = "trimesh" },
-]
-build123d = [
-    { name = "build123d" },
-]
-default = [
-    { name = "build123d" },
-    { name = "drawsvg" },
-    { name = "ezdxf" },
-    { name = "manifold3d" },
-    { name = "shapely" },
-    { name = "trimesh" },
-]
-mesh = [
-    { name = "manifold3d" },
-    { name = "trimesh" },
 ]
 openscad = [
     { name = "solidpython2" },
-]
-vector2d = [
-    { name = "drawsvg" },
-    { name = "ezdxf" },
-    { name = "shapely" },
 ]
 
 [package.dev-dependencies]
@@ -125,19 +105,18 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "build123d", marker = "extra == 'build123d'" },
-    { name = "cad-context", extras = ["build123d", "mesh", "vector2d"], marker = "extra == 'default'" },
-    { name = "cad-context", extras = ["default", "openscad"], marker = "extra == 'all'" },
-    { name = "drawsvg", marker = "extra == 'vector2d'" },
-    { name = "ezdxf", marker = "extra == 'vector2d'" },
-    { name = "manifold3d", marker = "extra == 'mesh'" },
+    { name = "build123d" },
+    { name = "cad-context", extras = ["openscad"], marker = "extra == 'all'" },
+    { name = "drawsvg" },
+    { name = "ezdxf" },
+    { name = "manifold3d" },
     { name = "numpy" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pyyaml" },
     { name = "rich" },
-    { name = "shapely", marker = "extra == 'vector2d'" },
+    { name = "shapely" },
     { name = "solidpython2", marker = "extra == 'openscad'" },
-    { name = "trimesh", marker = "extra == 'mesh'" },
+    { name = "trimesh" },
     { name = "typer" },
 ]
 provides-extras = ["build123d", "openscad", "mesh", "vector2d", "default", "all"]

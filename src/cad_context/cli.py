@@ -141,7 +141,10 @@ def info(ctx: typer.Context) -> None:
                     for b in degraded
                 ]
             ),
-            data={"backends": rows, "artifacts": tools, "paths": workspace.layout()},
+            data={
+                "backends": rows, "artifacts": tools, "paths": workspace.layout(),
+                "exchange_formats": list(exchange.FORMAT_ORDER),
+            },
         )
 
     _run(ctx, "info", body)
@@ -319,6 +322,7 @@ def verify(
     ctx: typer.Context,
     generator: Annotated[str, typer.Argument(help="Generator id")],
     param: ParamOption = None,
+    fmt: FormatOption = None,
     tolerance: Annotated[
         float,
         typer.Option(
@@ -334,7 +338,8 @@ def verify(
         overrides = parse_overrides(list(param or []))
         params = spec.parse(overrides)
         build_result = spec.build(params)
-        exported = exchange.export(build_result, list(spec.formats), measure=True)
+        formats = list(fmt) if fmt else list(spec.formats)
+        exported = exchange.export(build_result, formats, measure=True)
         metrics = build_result.metrics
         reference_key = "area_analytic" if spec.kind == "2d" else "volume_analytic"
         native_key = "area" if spec.kind == "2d" else "volume"
@@ -354,7 +359,33 @@ def verify(
             checks["native_matches_analytic"] = close(
                 native, reference, native_tolerance
             )
+        # OpenSCAD's external renderer is optional. Declared B-rep artifacts
+        # remain required even when a runtime dependency is unavailable.
+        for selected_format in formats:
+            optional = spec.backend == "openscad" and selected_format in {"stl", "glb"}
+            if not optional:
+                checks[f"{selected_format}_artifact_present"] = (
+                    selected_format in exported["files"]
+                )
         measured = exported["measurements"]
+        if "3mf" in measured:
+            mesh3mf = measured["3mf"]
+            checks.update({f"3mf_{k}": v for k, v in mesh3mf["checks"].items()})
+            checks["3mf_matches_reference"] = close(
+                mesh3mf["volume"], reference, min(tolerance, 0.01)
+            )
+            checks["3mf_matches_native"] = close(
+                mesh3mf["volume"], native, min(tolerance, 0.01)
+            )
+            from .exchange.three_mf import bounds_match
+
+            for key in ("bounds_min", "bounds_max"):
+                checks[f"3mf_{key}_matches_native"] = bool(
+                    key in metrics and bounds_match(
+                        mesh3mf[key], metrics[key],
+                        metrics["bounds_min"], metrics["bounds_max"],
+                    )
+                )
         if "mesh" in measured:
             mesh = measured["mesh"]
             checks["mesh_watertight"] = bool(mesh["watertight"])

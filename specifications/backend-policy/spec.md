@@ -12,6 +12,13 @@ inspection and GLB bridge. OpenSCAD/SolidPython2 remains an optional project
 authoring toolchain when `.scad`, Customizer delivery, or a genuinely different
 CSG/mesh path is a requirement.
 
+Plain `uv sync` installs the maintained geometry and exchange stack: build123d,
+Shapely, trimesh, manifold3d, ezdxf, and drawsvg. These are required project
+dependencies so CLI and web subprocesses need no extra selection. The former
+`build123d`, `mesh`, `vector2d`, and `default` extras remain accepted compatibility
+names. SolidPython2 remains opt-in through `openscad` or `all`; its external
+renderer is provisioned separately through `cadctx fetch openscad`.
+
 External projects are repository-independent when they use this supported
 toolchain. Arbitrary project-specific Python dependencies and isolated project
 environments are outside the workbench contract.
@@ -46,7 +53,7 @@ contract:
 3. Declare its id, backend, formats, parameter-model class, defaults, and web
    exposure in `project.yaml`.
 4. Keep native-object interpretation inside that backend module. Cross the
-   workbench boundary only through STEP, STL, GLB, SVG, DXF, JSON, or SCAD.
+   workbench boundary only through STEP, STL, GLB, 3MF, SVG, DXF, JSON, or SCAD.
 5. Run the same format-aware verification: exact kernel/reference agreement
    where the reference is exact, STEP re-import, and mesh/DXF/SVG/JSON proof.
 
@@ -57,3 +64,7 @@ and measured reference results are recorded in the dated packets under
 `plans/2026-08/11-cad-generators-bringup/` and
 `plans/2026-08/11-airfoil-parametric-visualizer/`.
 
+
+Single-piece 3MF uses the existing build123d Mesher/lib3mf stack as an opt-in
+exchange format, with independent ZIP/XML and trimesh proof. It adds no backend
+or external executable; each physical piece is a separate project generator.

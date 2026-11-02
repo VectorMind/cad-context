@@ -1,5 +1,21 @@
 # Workspace Layout And Output Discipline
 
+## Python Environments In Shared Checkouts
+
+Python virtual environments are platform-specific. In a Windows/WSL shared
+checkout, `.venv` is reserved for Windows. Before any `uv` command, Linux/WSL
+agents set `UV_PROJECT_ENVIRONMENT` to a separate Linux environment, normally
+`<repo>/.cache/scratch/venv-linux`. Existing isolated Linux validation
+environments may be reused. This applies to startup checks, dependency sync,
+tests, lint, and web launch; subprocesses inherit the override.
+
+Linux/WSL must never create, synchronize, replace, or remove the Windows
+`.venv`. An incompatible environment is a reason to select another path, not
+recreate it. The override belongs in the calling shell, not shared project
+configuration; Windows retains plain `uv sync`. Environment separation permits
+cross-platform validation without modifying another platform's installed
+packages, executables, or symlinks.
+
 ## Operational Cache
 
 Every operational result remains below the repository's git-ignored cache:

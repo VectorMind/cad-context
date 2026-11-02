@@ -41,3 +41,6 @@ and running notes in `plans/` instead.
 - [`model-projects/`](model-projects/spec.md) — external project selection,
   manifest schema, trusted code loading, output routing, collisions, and web
   process lifetime.
+
+- [`3mf-export/`](3mf-export/spec.md) — opt-in native single-piece 3MF, package
+  and topology proof, failure behavior, and Windows acceptance.

@@ -17,6 +17,55 @@ from cad_context.exchange import export3d
 runner = CliRunner()
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "../secret.html",
+        "/secret.html",
+        "a/../b.svg",
+        "a//b.svg",
+        "C:/x.html",
+        "a\\b.html",
+        "src/code.py",
+    ],
+)
+def test_portfolio_rejects_unconfined_or_source_paths(path):
+    with pytest.raises(ValueError):
+        projects.PortfolioDeclaration(entry=path)
+
+
+def test_portfolio_metadata_is_explicit_and_reports_missing_files(tmp_path):
+    (tmp_path / "PORTFOLIO.html").write_text("<h1>Example</h1>")
+    manifest = projects.ProjectManifest(
+        name="example",
+        portfolio={"entry": "PORTFOLIO.html", "files": ["images/missing.svg"]},
+    )
+    metadata = projects.portfolio_metadata(tmp_path, manifest)
+    assert metadata == {
+        "entry": "PORTFOLIO.html",
+        "files": [
+            {"path": "PORTFOLIO.html", "available": True},
+            {"path": "images/missing.svg", "available": False},
+        ],
+    }
+
+
+def test_portfolio_rejects_symlink_escape(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = tmp_path / "outside.html"
+    outside.write_text("private")
+    try:
+        (project / "entry.html").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation unavailable")
+    manifest = projects.ProjectManifest(
+        name="example", portfolio={"entry": "entry.html"}
+    )
+    with pytest.raises(projects.ProjectError, match="escapes"):
+        projects.portfolio_metadata(project, manifest)
+
+
 @pytest.fixture()
 def sample_project(tmp_path, cache, monkeypatch):
     source = Path(__file__).parent / "fixtures" / "sample_project"
@@ -39,8 +88,7 @@ def test_project_manifest_merges_generators_without_importing_code(sample_projec
 def test_project_schema_defaults_and_artifacts_stay_with_project(sample_project):
     schema = api.schema("project-plate")
     defaults = {
-        parameter["name"]: parameter["default"]
-        for parameter in schema["parameters"]
+        parameter["name"]: parameter["default"] for parameter in schema["parameters"]
     }
     assert defaults["width"] == 75.0
 

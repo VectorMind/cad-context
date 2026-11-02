@@ -17,11 +17,11 @@ from typing import Any
 
 from .. import workspace
 from ..types import BackendUnavailable, BuildResult
-from . import export2d, export3d
+from . import export2d, export3d, three_mf
 
 #: Formats that carry geometry, in the order they must be produced (GLB is
 #: derived from STL, so STL comes first).
-FORMAT_ORDER = ("svg", "dxf", "json", "scad", "step", "stl", "glb")
+FORMAT_ORDER = ("svg", "dxf", "json", "scad", "step", "stl", "3mf", "glb")
 
 FORMAT_KIND = {
     "svg": "2d",
@@ -31,6 +31,7 @@ FORMAT_KIND = {
     "step": "3d",
     "stl": "3d",
     "glb": "3d",
+    "3mf": "3d",
 }
 
 
@@ -114,6 +115,8 @@ def export(
                 write_atomic(
                     path, lambda target: export3d.write_stl(build_result, target)
                 )
+            elif fmt == "3mf":
+                write_atomic(path, lambda target: three_mf.write(build_result, target))
             elif fmt == "glb":
                 # GLB is derived from a mesh. When the caller did not ask for
                 # the STL itself, tessellate into a temporary file so only the
@@ -142,6 +145,8 @@ def export(
         mesh_source = files.get("stl") or files.get("glb")
         if mesh_source:
             measurements["mesh"] = export3d.mesh_metrics(mesh_source)
+        if "3mf" in files:
+            measurements["3mf"] = three_mf.read_metrics(files["3mf"])
         if "step" in files:
             measurements["step"] = export3d.read_step_metrics(files["step"])
         if "dxf" in files:

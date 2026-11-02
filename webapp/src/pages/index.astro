@@ -1,7 +1,7 @@
 ---
 // Rendered from `cadctx generators`; the app owns no second registry.
 import Layout from '../layout/Layout.astro';
-import { listGenerators } from '../server/cadctx.ts';
+import { listGenerators, projectInfo } from '../server/cadctx.ts';
 import { effectiveExposure } from '../server/exposure.ts';
 
 export const prerender = false;
@@ -14,6 +14,7 @@ try {
   error = cause instanceof Error ? cause.message : String(cause);
 }
 const projectGenerators = generators.filter((generator) => generator.origin === 'project');
+const project = await projectInfo().catch(() => null);
 const groups = [
   { title: 'Built-in generators', generators: generators.filter((g) => g.origin === 'builtin') },
   ...(projectGenerators.length > 0
@@ -32,6 +33,8 @@ const groups = [
     </p>
 
     {error && <p class="error">cadctx failed: {error}</p>}
+
+    {project?.active && <a class="card featured" href="/project"><h2>{project.name}</h2><p>Open project portfolio, drawings, evidence and models.</p></a>}
 
     <a class="card featured" href="/airfoil">
       <h2>Airfoil + wing loft</h2>

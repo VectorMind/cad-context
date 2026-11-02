@@ -32,3 +32,9 @@ the exchange layer or the CLI.
 Repository routing lives in `README.md`, `AGENTS.md`, and `WORKFLOW.md`, not in
 packaged agent skills or tool-specific manifests. Model-specific routing and web
 exposure live in the external project's versioned `project.yaml`.
+
+`generate` and `verify` accept repeated `--format/-f` options. Single-piece 3MF
+is opt-in (`-f 3mf` or a build123d project format declaration). `info` reports
+supported exchange formats without changing built-in generator declarations.
+Required missing artifacts fail verification; optional external OpenSCAD
+rendering may degrade. API builds remain free of file writes.
