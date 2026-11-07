@@ -36,11 +36,30 @@ def write_stl(build_result: Any, path: Path) -> Path:
     if backend == "build123d":
         from build123d import export_stl
 
+        quality = build_result.tessellation
+        if quality and quality.stl_writer == "mesher":
+            try:
+                from build123d import Mesher, Unit
+
+                mesher = Mesher(unit=Unit.MM)
+            except (ImportError, OSError) as exc:
+                raise BackendUnavailable(
+                    f"Mesher STL runtime unavailable: {exc}"
+                ) from exc
+            mesher.add_shape(
+                build_result.native,
+                linear_deflection=quality.linear_deflection,
+                angular_deflection=quality.angular_deflection,
+            )
+            mesher.write(path)
+            return path
         export_stl(
             build_result.native,
             str(path),
-            tolerance=LINEAR_TOLERANCE,
-            angular_tolerance=ANGULAR_TOLERANCE,
+            tolerance=quality.linear_deflection if quality else LINEAR_TOLERANCE,
+            angular_tolerance=(
+                quality.angular_deflection if quality else ANGULAR_TOLERANCE
+            ),
         )
     elif backend == "openscad":
         scad_path = path.with_suffix(".scad")
@@ -72,7 +91,7 @@ def render_scad(scad_path: Path, out_path: Path) -> Path:
     executable = openscad_executable()
     if executable is None:
         raise BackendUnavailable(
-            "OpenSCAD binary not found — run `cadctx fetch openscad` "
+            "OpenSCAD binary not found — run `cadcon fetch openscad` "
             "or put `openscad` on PATH"
         )
     command = [str(executable), "-o", str(out_path), str(scad_path)]

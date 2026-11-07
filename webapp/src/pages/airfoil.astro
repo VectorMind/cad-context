@@ -4,7 +4,7 @@
 // starts from the real contracts instead of fetching them after hydration.
 import AirfoilWorkbench from '../components/AirfoilWorkbench.tsx';
 import Layout from '../layout/Layout.astro';
-import { listGenerators } from '../server/cadctx.ts';
+import { listGenerators } from '../server/cadcon.ts';
 import { exposedSchema } from '../server/exposure.ts';
 
 export const prerender = false;
@@ -32,11 +32,11 @@ try {
   error = cause instanceof Error ? cause.message : String(cause);
 }
 
-const command = `uv run cadctx generate ${PROFILE} && uv run cadctx verify wing-build123d`;
+const command = `uv run cadcon generate ${PROFILE} && uv run cadcon verify wing-build123d`;
 ---
 
 <Layout title="Airfoil" crumb="airfoil + wing loft" command={command}>
-  {error && <p class="error banner">cadctx failed: {error}</p>}
+  {error && <p class="error banner">cadcon failed: {error}</p>}
   {
     profile && wings.length > 0 && (
       <!-- client:only — three.js and leva are browser-only. -->

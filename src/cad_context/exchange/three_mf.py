@@ -176,11 +176,16 @@ def write(build_result: Any, path: Path) -> Path:
         raise ValueError("3MF requires one solid without extra shells, faces or wires")
     from .export3d import ANGULAR_TOLERANCE, LINEAR_TOLERANCE
 
+    quality = build_result.tessellation
     try:
         mesher.add_shape(
             solids[0],
-            linear_deflection=LINEAR_TOLERANCE,
-            angular_deflection=ANGULAR_TOLERANCE,
+            linear_deflection=(
+                quality.linear_deflection if quality else LINEAR_TOLERANCE
+            ),
+            angular_deflection=(
+                quality.angular_deflection if quality else ANGULAR_TOLERANCE
+            ),
         )
         mesher.write(path)
     except RuntimeError as exc:

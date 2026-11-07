@@ -1,7 +1,7 @@
 # Plan: native Windows 3MF export
 
 Date: 2026-11-01. Status: implementation complete; native Windows acceptance passed.
-User requested a handoff plan to leave Fusion and use native Windows cad-context. This packet covers only the generic workbench dependency. Model-specific migration documentation remains in the external project's HANDOFF-CADCTX.md.
+User requested a handoff plan to leave Fusion and use native Windows cad-context. This packet covers only the generic workbench dependency. Model-specific migration documentation remains in the external project's HANDOFF-CADCON.md.
 
 ## Scope
 

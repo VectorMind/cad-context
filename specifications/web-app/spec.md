@@ -6,9 +6,12 @@ The web app is a quick preview-and-tweak surface, not a CAD system. It renders
 real exchange artifacts and never owns geometry, parameter ranges, defaults, or
 backend-native logic.
 
-Every shape answer comes from a server-side `cadctx --json` subprocess:
+Every shape answer comes from a server-side `cadcon --json` subprocess:
 registry, schema, generation, paths, and artifacts. Client code never spawns a
 process or reads the filesystem.
+
+The default launcher is `uv run cadcon`. `CADCON_COMMAND` overrides the launcher
+for environments where the command is already on PATH or uses another runner.
 
 ## Curated Exposure
 
@@ -31,7 +34,7 @@ busy state.
 
 ## Projects And Artifacts
 
-`cadctx web` snapshots one active project for the process lifetime. Registry and
+`cadcon web` snapshots one active project for the process lifetime. Registry and
 schema memoization is therefore safe; switching projects requires restarting
 the server. The index groups active-project generators under their project name.
 
@@ -40,9 +43,18 @@ the requested generator, checks its one filename component, and confines both
 lexical and real paths to that generator root. URLs stay stable and responses
 use `no-store` plus a cache-defeating query after regeneration.
 
+## Portfolio Galleries
+
+The project viewer shows declared presentation images in responsive cards with
+bounded image heights. Sparse galleries retain card widths instead of stretching
+a single image across the desktop page. Models, downloads, images and evidence
+are presented directly; the viewer does not embed duplicate HTML portfolios or
+historical collections. Declared HTML files remain available through the confined
+file route for archive access. No project files are auto-discovered.
+
 ## Starting
 
-The only supported start surface is `cadctx web`. It resolves dependencies,
+The only supported start surface is `cadcon web`. It resolves dependencies,
 starts Astro, passes the snapshotted project environment, writes the server log
 under `.cache/reports/`, and prints the URL. There is no separate long-lived
 Python service.

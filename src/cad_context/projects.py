@@ -21,7 +21,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from . import workspace
+from . import project_catalog, workspace
 
 PROJECT_ENV_VAR = "CAD_CONTEXT_PROJECT"
 NO_PROJECT_ENV_VAR = "CAD_CONTEXT_NO_PROJECT"
@@ -144,6 +144,7 @@ class ProjectManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     version: Literal[1] = 1
+    tool: Literal["cadcon"] = "cadcon"
     name: str
     description: str = ""
     generators: list[GeneratorDeclaration] = Field(default_factory=list)
@@ -193,7 +194,7 @@ class ProjectManifest(BaseModel):
 def configure_command_project(path: Path | None, *, disabled: bool = False) -> None:
     """Apply one CLI invocation's explicit project selection."""
     global _command_project, _command_project_disabled
-    _command_project = path.expanduser().resolve() if path is not None else None
+    _command_project = path
     _command_project_disabled = disabled
 
 
@@ -210,11 +211,18 @@ def _pointer_project() -> Path | None:
         value = payload["project"]
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
         raise ProjectError(f"invalid persisted project pointer at {path}") from exc
-    return Path(value).expanduser().resolve()
+    return Path(value)
+
+
+def resolve_selection(value: Path) -> Path:
+    catalog = project_catalog.load()
+    if str(value) in catalog.projects:
+        return project_catalog.resolve(str(value), catalog)
+    return value.expanduser().resolve()
 
 
 def active_path(*, require_manifest: bool = True) -> Path | None:
-    """Resolve ``--project`` > environment > persisted pointer > repository mode."""
+    """Resolve explicit selection, environment, pointer, then catalog default."""
     if _command_project_disabled:
         return None
     path = _command_project
@@ -222,27 +230,34 @@ def active_path(*, require_manifest: bool = True) -> Path | None:
         if os.environ.get(NO_PROJECT_ENV_VAR) == "1":
             return None
         env = os.environ.get(PROJECT_ENV_VAR)
-        path = Path(env).expanduser().resolve() if env else _pointer_project()
+        path = Path(env) if env else _pointer_project()
     if path is None:
-        return None
+        default = project_catalog.load().default
+        if default is None:
+            return None
+        path = Path(default)
+    path = resolve_selection(path)
     if not path.is_dir():
         raise ProjectError(f"project folder does not exist: {path}")
     if require_manifest and not (path / MANIFEST_FILENAME).is_file():
         raise ProjectError(
             f"project folder has no {MANIFEST_FILENAME}: {path}; "
-            f"run `cadctx project init {path}` first"
+            f"run `cadcon project init {path}` first"
         )
     return path
 
 
 def persist(path: Path) -> Path:
-    resolved = path.expanduser().resolve()
+    resolved = resolve_selection(path)
     load_manifest(resolved)
     target = pointer_path()
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(".tmp")
+    selection = (
+        str(path) if str(path) in project_catalog.load().projects else str(resolved)
+    )
     temporary.write_text(
-        json.dumps({"project": str(resolved)}, indent=2), encoding="utf-8"
+        json.dumps({"project": selection}, indent=2), encoding="utf-8"
     )
     temporary.replace(target)
     return resolved
@@ -283,6 +298,7 @@ def initialise(path: Path, *, dry_run: bool = False) -> dict[str, Any]:
     directories = [root / "cad", root / "generators", root / "evidence"]
     payload = {
         "version": 1,
+        "tool": "cadcon",
         "name": root.name,
         "description": "",
         "generators": [],
@@ -337,7 +353,7 @@ def portfolio_metadata(root: Path, manifest: ProjectManifest) -> dict[str, Any] 
 
 def _namespace(root: Path) -> str:
     digest = sha256(str(root).encode()).hexdigest()[:12]
-    return f"_cadctx_project_{digest}"
+    return f"_cadcon_project_{digest}"
 
 
 @contextmanager

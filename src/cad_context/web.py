@@ -2,8 +2,8 @@
 
 The web app under ``webapp/`` is an Astro SSR server whose handlers shell out
 to this CLI. There is no second long-running Python process: the "backend" of a
-page is ``uv run cadctx generate …``, spawned per request. Starting the whole
-thing is therefore one command — this module is what ``cadctx web`` runs.
+page is ``uv run cadcon generate …``, spawned per request. Starting the whole
+thing is therefore one command — this module is what ``cadcon web`` runs.
 
 Console discipline still applies: the dev server's own output is streamed into
 ``.cache/reports/web.log`` and referenced by path, never echoed.

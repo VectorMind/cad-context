@@ -227,7 +227,7 @@ export default function AirfoilWorkbench({ profile, wings }: AirfoilWorkbenchPro
             </span>
             <span className="timing">
               {wingLoop.state.lastMs === null ? '—' : `${wingLoop.state.lastMs} ms`}
-              {wingLoop.state.cliMs !== null && ` · ${wingLoop.state.cliMs} ms cadctx`}
+              {wingLoop.state.cliMs !== null && ` · ${wingLoop.state.cliMs} ms cadcon`}
             </span>
             {wings.length > 1 && (
               <span className="backends" role="group" aria-label="loft backend">

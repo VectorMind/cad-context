@@ -6,7 +6,7 @@ This extends specifications/exchange-formats/spec.md.
 
 ## Selected design
 
-Support generic 3MF for build123d generators through the existing cadctx generate and verify commands and cad_context.exchange.export boundary. Use build123d.Mesher backed by lib3mf. This is not a new CAD backend, an external converter service, or a slicer integration. Start with the existing lock (build123d 0.11.1, lib3mf 2.5.0); verify the installed API on Windows before changing dependencies.
+Support generic 3MF for build123d generators through the existing cadcon generate and verify commands and cad_context.exchange.export boundary. Use build123d.Mesher backed by lib3mf. This is not a new CAD backend, an external converter service, or a slicer integration. Start with the existing lock (build123d 0.11.1, lib3mf 2.5.0); verify the installed API on Windows before changing dependencies.
 
 Default units are explicitly millimetres, Z-up, with 0.01 mm linear and 0.1 rad angular tessellation tolerances. Export directly from the native shape; do not round-trip through STL. Instantiate a fresh Mesher for each artifact to avoid accumulated objects. Stable paths and atomic writes follow the existing exchange contract.
 

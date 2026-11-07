@@ -1,8 +1,11 @@
 # Derived artifacts — every execution output lands here, never in git.
 .cache/
 
-# Externally fetched binaries (cadctx fetch)
+# Externally fetched binaries (cadcon fetch)
 .tools/
+
+# Machine-specific storage bindings (portable catalog is versioned).
+config/projects.local.yaml
 
 # Legacy/manual output directory
 out/

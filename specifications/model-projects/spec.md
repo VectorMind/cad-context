@@ -13,22 +13,69 @@ that project's generators.
 
 Resolution order is:
 
-1. global `--project <path>` option;
+1. global `--project <id-or-path>` option;
 2. `CAD_CONTEXT_PROJECT` environment variable;
-3. the pointer written by `cadctx project use <path>` under the repository cache;
-4. repository mode, with no project.
+3. the pointer written by `cadcon project use <path>` under the repository cache;
+4. `default` in versioned `config/projects.yaml`;
+5. repository mode, with no project.
 
-`--no-project` explicitly bypasses the environment and persisted pointer.
-`cadctx project use` accepts only an initialized, valid project. Initialization
+`--no-project` explicitly bypasses the environment, pointer, and catalog default.
+`CAD_CONTEXT_NO_PROJECT=1` bypasses these fallbacks for child processes; an
+explicit command selection still wins. `project clear` removes only the pointer,
+returning to the configured default. Existing absolute-path pointers remain valid.
+`cadcon project use` accepts only an initialized, valid project. Initialization
 therefore precedes selection:
 
 ```text
-cadctx project init <path>
-cadctx project use <path>
+cadcon project init <path>
+cadcon project use <path>
 ```
 
-`cadctx project init --dry-run <path>` reports the proposed scaffold without
+`cadcon project init --dry-run <path>` reports the proposed scaffold without
 writing. Initialization never overwrites an existing `project.yaml`.
+
+## Portable Catalog And Discovery
+
+`config/projects.yaml` is versioned configuration, schema version 1, with strict
+fields `version`, optional `default`, `roots`, and `projects`. Each root has an
+optional environment variable name (`env`) and a list of path `candidates`.
+Each project ID maps to `root` and a confined relative POSIX `path`. The default
+must name a registered ID; root references must exist. Unknown fields, absolute
+project paths, dot segments, and resolved symlink escapes are errors.
+
+Root resolution is the declared environment variable, then the root binding in
+ignored `config/projects.local.yaml`, then an existing candidate. Candidate
+paths expand `~`; multiple distinct existing candidates require an explicit
+binding. No remote Drive API, drive-letter scan, or recursive filesystem search
+is performed. `cadcon project root <name> <path>` validates the root name and
+existing directory, then atomically persists its machine-specific binding under
+`roots`. This is configuration, not cache, so cache cleanup preserves it.
+
+Explicit selection and `CAD_CONTEXT_PROJECT` accept catalog IDs or paths.
+`project use <id>` persists the ID, which resolves afresh on the next invocation.
+Path-based selection remains supported. A missing default root/project is an
+actionable error, never a silent fallback to another model. The delivered catalog
+defaults to `animal-puzzle` at `shared-models/2026-10-24-animal-puzzle`.
+`shared-models` uses `CADCON_SHARED_PROJECTS_ROOT` or a machine binding, with the
+shared Drive folder as candidate. `models` uses `CADCON_PROJECTS_ROOT` or a
+machine binding, with `~/My Drive/Projects/3d-models` and the old shared projects
+folder as candidates; both existing requires an explicit binding. `airfoil-wing`
+and `reference-parts` are registered under `models`.
+
+`cadcon project list` reports all registered entries, their default flag, resolved
+paths, availability, and manifest/root errors; it also discovers immediate child
+directories containing a valid `project.yaml` with explicit `tool: cadcon` under
+resolved roots. Missing markers, other tools, malformed YAML and invalid discovered
+manifests are excluded. Explicitly registered invalid entries remain listed with
+errors. Legacy manifests without a tool marker remain valid for explicit/catalog
+selection, but must add the marker to participate in automatic discovery.
+Discovery is confined
+to those roots, deduplicates resolved paths, uses safe manifest parsing, and never
+imports Python or writes project files. Discovered unregistered projects have no
+catalog ID and can be selected by path. Only initialized projects are listed;
+arbitrary model folders are not automatically initialized. Selecting a catalog
+default carries the same local-code trust as selecting an explicit path. The web
+server snapshots the resolved project as before; restart after selection changes.
 
 ## Manifest
 
@@ -38,6 +85,7 @@ version 1 is:
 
 ```yaml
 version: 1
+tool: cadcon
 name: example-part
 description: Short purpose.
 generators:
@@ -102,7 +150,7 @@ generating; redirected cache alone does not redirect project output.
 
 ## Web Process Lifetime
 
-`cadctx web` snapshots the resolved project into the server process environment.
+`cadcon web` snapshots the resolved project into the server process environment.
 All CLI subprocesses spawned by that server use the same project. Changing the
 persisted pointer does not switch a running server; restart the server to select
 a different project. The UI groups project generators under the project name
@@ -119,15 +167,15 @@ portfolio:
   files: [images/overview.svg, exports/review.step]
 ```
 
-`cadctx --json project info` exposes the
+`cadcon --json project info` exposes the
 entry and each declared file's availability without importing project code.
 Paths use forward slashes, remain relative to the project, and cannot contain
 empty, dot or parent components, backslashes or drive prefixes. Presentation
 types are HTML, SVG, PNG/JPEG/WebP, PDF, STEP/STP, STL, GLB, 3MF, JSON and DXF.
 Explicitly listed historical F3D archives may also be downloaded; this adds no
 Fusion runtime or authoring support.
-The web `/project` page shows generated models, declared images and the existing
-portfolio in a sandboxed frame. `/project/files/` serves only declared files,
+The web `/project` page shows generated models, downloads and declared images
+directly, without duplicate HTML portfolio frames. `/project/files/` serves only declared files,
 including the entry, after realpath confinement checks. HTML and SVG responses
 are sandboxed; neither may access the app origin or remote scripts. Generated
 models retain the existing generator artifact routes and confinement.

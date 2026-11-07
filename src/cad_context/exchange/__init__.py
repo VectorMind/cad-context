@@ -127,7 +127,7 @@ def export(
                         lambda target: export3d.write_glb(files["stl"], target),
                     )
                 else:
-                    with tempfile.TemporaryDirectory(prefix="cadctx-") as scratch:
+                    with tempfile.TemporaryDirectory(prefix="cadcon-") as scratch:
                         intermediate = Path(scratch) / f"{build_result.generator}.stl"
                         export3d.write_stl(build_result, intermediate)
                         write_atomic(
@@ -168,6 +168,7 @@ def export(
                 "generator": spec.id,
                 "params": build_result.params,
                 "metrics": build_result.metrics,
+                "tessellation": build_result.summary()["tessellation"],
                 "files": {fmt: str(path) for fmt, path in files.items()},
                 "measurements": measurements,
                 "skipped": skipped,

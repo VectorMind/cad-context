@@ -1,6 +1,6 @@
 # External binaries, declared as artifacts rather than manual installs.
 #
-# `cadctx fetch <name>` reads this file, downloads the matching asset, verifies
+# `cadcon fetch <name>` reads this file, downloads the matching asset, verifies
 # it, unpacks it into `install_dir` (git-ignored) and reports the resolved
 # executable. Runtime detection checks `.tools/` first, then PATH.
 #

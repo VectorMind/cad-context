@@ -12,7 +12,7 @@ part = api.build("bracket-build123d").native   # -> live build123d object
 ```
 
 Writing files is a separate, explicit decision: it happens through the
-``cadctx`` CLI, or through :func:`cad_context.exchange.export` if a script
+``cadcon`` CLI, or through :func:`cad_context.exchange.export` if a script
 really needs artifacts. That split is what keeps ad-hoc agent scripts from
 littering the workspace.
 """

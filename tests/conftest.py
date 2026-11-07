@@ -9,7 +9,15 @@ from __future__ import annotations
 
 import pytest
 
-from cad_context import backends, workspace
+from cad_context import backends, project_catalog, workspace
+
+
+@pytest.fixture(autouse=True)
+def isolated_catalog(tmp_path, monkeypatch):
+    """Tests must not discover or execute a developer's default model project."""
+    monkeypatch.setattr(
+        project_catalog, "catalog_path", lambda: tmp_path / "projects.yaml"
+    )
 
 
 @pytest.fixture()
@@ -30,15 +38,18 @@ def pytest_generate_tests(metafunc):
     """
     from cad_context import generators
 
-    for name in generators.families():
-        fixture = f"{name}_3d"
-        if fixture not in metafunc.fixturenames:
-            continue
-        metafunc.parametrize(
-            fixture,
-            [
-                spec.id
-                for spec in generators.family(name, kind="3d")
-                if backends.available(spec.backend)
-            ],
-        )
+    # Collection runs before fixtures, including on machines without Drive.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(project_catalog, "load", project_catalog.Catalog)
+        for name in generators.families():
+            fixture = f"{name}_3d"
+            if fixture not in metafunc.fixturenames:
+                continue
+            metafunc.parametrize(
+                fixture,
+                [
+                    spec.id
+                    for spec in generators.family(name, kind="3d")
+                    if backends.available(spec.backend)
+                ],
+            )

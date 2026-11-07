@@ -1,0 +1,22 @@
+version: 1
+default: animal-puzzle
+roots:
+  models:
+    env: CADCON_PROJECTS_ROOT
+    candidates:
+      - ~/My Drive/Projects/3d-models
+      - ~/My Drive/Flatshare/3D Models Shared/projects
+  shared-models:
+    env: CADCON_SHARED_PROJECTS_ROOT
+    candidates:
+      - ~/My Drive/Flatshare/3D Models Shared/projects
+projects:
+  animal-puzzle:
+    root: shared-models
+    path: 2026-10-24-animal-puzzle
+  airfoil-wing:
+    root: models
+    path: airfoil-wing
+  reference-parts:
+    root: models
+    path: reference-parts

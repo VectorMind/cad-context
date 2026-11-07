@@ -1,7 +1,7 @@
 ---
-// Rendered from `cadctx generators`; the app owns no second registry.
+// Rendered from `cadcon generators`; the app owns no second registry.
 import Layout from '../layout/Layout.astro';
-import { listGenerators, projectInfo } from '../server/cadctx.ts';
+import { listGenerators, projectInfo } from '../server/cadcon.ts';
 import { effectiveExposure } from '../server/exposure.ts';
 
 export const prerender = false;
@@ -23,18 +23,18 @@ const groups = [
 ];
 ---
 
-<Layout title="Shapes" command="uv run cadctx web">
+<Layout title="Shapes" command="uv run cadcon web">
   <div class="home">
     <h1>Generated shapes</h1>
     <p class="lede">
       Pick a generator, move a few parameters, watch the shape regenerate. Every
-      page talks to the Python side through <code>cadctx</code>; nothing here
+      page talks to the Python side through <code>cadcon</code>; nothing here
       holds a second copy of the geometry logic.
     </p>
 
-    {error && <p class="error">cadctx failed: {error}</p>}
+    {error && <p class="error">cadcon failed: {error}</p>}
 
-    {project?.active && <a class="card featured" href="/project"><h2>{project.name}</h2><p>Open project portfolio, drawings, evidence and models.</p></a>}
+    {project?.active && <a class="card featured" href="/project"><h2>{project.name}</h2><p>Open project drawings, evidence and models.</p></a>}
 
     <a class="card featured" href="/airfoil">
       <h2>Airfoil + wing loft</h2>
@@ -55,7 +55,7 @@ const groups = [
               return (
                 <a
                   class:list={['card', { unavailable: !generator.available }]}
-                  href={`/viewer/${generator.id}`}
+                  href={generator.origin === 'project' && generator.kind === '3d' && !generator.formats.some((format) => ['glb', 'stl'].includes(format)) ? '/project' : `/viewer/${generator.id}`}
                 >
                   <h2>{generator.title}</h2>
                   <p class="meta">

@@ -19,7 +19,7 @@ Package (`src/cad_context/`):
 | `backends.py` | availability probing via `find_spec` (never imports a kernel to answer), version and binary status |
 | `artifacts.py` | `config/artifacts.yaml` loader, GitHub-release/direct-URL fetch, unpack, `.tools/`-then-`PATH` resolution |
 | `api.py` | side-effect-free Python surface for agents/scripts |
-| `cli.py` | `cadctx`: `info`, `generators`, `schema`, `generate`, `demo`, `compare`, `fetch`, `paths`, `clean` |
+| `cli.py` | `cadcon`: `info`, `generators`, `schema`, `generate`, `demo`, `compare`, `fetch`, `paths`, `clean` |
 | `generators/models.py` | `BracketParams`, `PlateParams`, and the analytic volume/area formulas used as the cross-backend reference |
 | `generators/plate2d.py` | 2D slotted plate via shapely |
 | `generators/bracket_cadquery.py` | reference bracket, CadQuery |
@@ -49,9 +49,9 @@ files), and five specs under `specifications/`.
   with shapely boolean ops (erode/dilate for corner rounding, buffered segments
   for slot capsules) and exported to SVG + DXF with millimetre units.
 - **Backend probing never imports a kernel**: `backends.status()` uses
-  `importlib.util.find_spec`, so `cadctx info` and `cadctx generators` stay
+  `importlib.util.find_spec`, so `cadcon info` and `cadcon generators` stay
   fast. Generator builders are imported lazily from the registry.
-- **OpenSCAD** is fetched from GitHub releases by `cadctx fetch openscad` into
+- **OpenSCAD** is fetched from GitHub releases by `cadcon fetch openscad` into
   `.tools/openscad/`, then invoked as `openscad -o <out.stl> <in.scad>`.
   Without the binary the backend still emits `.scad` and records STL/GLB as
   skipped (`degraded`), proven by a test that monkeypatches the resolver.
@@ -79,7 +79,7 @@ files), and five specs under `specifications/`.
 
 - Artifacts land in `.cache/cad/` at fixed paths, not in `out/` (OP-108).
   `out/` remains git-ignored for anyone using it manually.
-- Added `cadctx compare`, `cadctx paths` and `cadctx clean` beyond the planned
+- Added `cadcon compare`, `cadcon paths` and `cadcon clean` beyond the planned
   `demo`/`fetch`. Cross-backend agreement was an exit criterion with no command
   behind it, and OP-106 requires every capability to be reachable through a
   documented command.
@@ -133,9 +133,9 @@ Both worth knowing about — a plain `uv sync --extra all` fails without them:
 
 ```bash
 uv sync --extra all
-uv run cadctx fetch openscad
-uv run cadctx demo
-uv run cadctx compare
+uv run cadcon fetch openscad
+uv run cadcon demo
+uv run cadcon compare
 uv run pytest
 uv run ruff check .
 ```

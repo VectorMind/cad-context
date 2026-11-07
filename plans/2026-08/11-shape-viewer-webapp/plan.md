@@ -28,7 +28,7 @@ updates and latest-wins debouncing, and rejected the WASM option outright.
 OP-203's parameter-exposure idea was folded back into Plan 1 as a simple
 parametric demo shape. Implementation raised two further decisions, both
 accepted the same day: OP-206 (the API exposes a curated subset of each
-generator's parameters, not the whole model) and OP-207 (one `cadctx web`
+generator's parameters, not the whole model) and OP-207 (one `cadcon web`
 command brings the whole thing up). One-glance state (details in the Open
 Points section below):
 
@@ -40,7 +40,7 @@ Points section below):
 | OP-204 | Regeneration bridge | subprocess-per-request (a) behind a designed regeneration contract: full params + optional single-changed-parameter field, one request in flight, latest-wins debounce; warm worker (b) drops in unchanged; sweeps (c) demo mode; WASM (d) **rejected** | high | accepted |
 | OP-205 | Package manager and tooling | pnpm + TypeScript + Prettier defaults; no test framework in first pass beyond build passing | medium | accepted |
 | OP-206 | Editable parameter surface | Curated allowlist per generator (`webapp/config/exposure.json`, names only); unexposed parameters read-only at their defaults; endpoint rejects the rest | high | accepted |
-| OP-207 | Starting both halves | One `cadctx web` command: installs deps, preflights backends, starts the Astro server, prints the URL; no second Python process | high | accepted |
+| OP-207 | Starting both halves | One `cadcon web` command: installs deps, preflights backends, starts the Astro server, prints the URL; no second Python process | high | accepted |
 
 ## Positioning Against External Viewers
 
@@ -140,14 +140,14 @@ relevant to the Python generators generally, not only to this app. Plan 1
 (`11-cad-generators-bringup`) is amended accordingly: its demo work now
 includes a **simple parametric example** — one shape exposing a few
 parameters through the pydantic parameter-schema models and a documented
-`cadctx` command. The web app also reaches that example through the shared
+`cadcon` command. The web app also reaches that example through the shared
 parameter-schema spec once it is folded.
 
 ### OP-204 — Regeneration bridge (browser → Python → new geometry)
 
 - Options:
   - **(a) Subprocess per request**: server endpoint spawns
-    `cadctx generate ... --json`, returns fresh GLB/SVG. Simple, stateless,
+    `cadcon generate ... --json`, returns fresh GLB/SVG. Simple, stateless,
     but pays interpreter + OCCT import cost per change (seconds — too slow
     for slider-dragging).
   - **(b) Long-lived Python worker**: FastAPI (or stdio JSON-RPC child
@@ -240,16 +240,16 @@ never overloads the generation pipeline:
 - Options:
   - **Documented two-step** (`uv sync`, then `pnpm dev` in `webapp/`): no new
     code, but it is two surfaces, and it contradicts the rule that every
-    capability is reachable through a documented `cadctx` command.
-  - **`cadctx web`**: one command that installs the app's dependencies when
+    capability is reachable through a documented `cadcon` command.
+  - **`cadcon web`**: one command that installs the app's dependencies when
     missing, preflights backend availability, starts the Astro dev server,
     verifies it answers, and reports the URL through the normal result-file
     contract.
   - **A long-running Python service next to the web server**: matches the
     "two servers" mental model but is exactly the warm-worker upgrade OP-204
     defers; adding it now buys nothing and doubles what can break.
-- Proposal: **`cadctx web`**, and documentation that says plainly there is no
-  second Python process — a page's backend is a `cadctx` subprocess per
+- Proposal: **`cadcon web`**, and documentation that says plainly there is no
+  second Python process — a page's backend is a `cadcon` subprocess per
   request.
 - Confidence: high. Status: **accepted 2026-08-11** — raised by the maintainer
   during implementation (a simple prompt should bring both halves up).
@@ -294,7 +294,7 @@ implementation time.)
    (contract co-designed with Plan 1's pydantic models; folded into
    `specifications/parameter-schema/spec.md` when accepted).
 4. **Regeneration loop.** OP-204 mode (a) behind the accepted regeneration
-   contract: endpoint → `cadctx` → fresh artifact → viewer refresh, with
+   contract: endpoint → `cadcon` → fresh artifact → viewer refresh, with
    the `seq`/latest-wins debounce client implemented from the start;
    measure the latency to ground the (b) decision with numbers.
 5. **Proof.** Load round-trips and the regeneration loop recorded in

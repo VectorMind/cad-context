@@ -108,7 +108,7 @@ def rel(path: Path | str) -> str:
 
 
 def layout() -> dict[str, str]:
-    """The workspace contract as plain data (consumed by ``cadctx paths``)."""
+    """The workspace contract as plain data (consumed by ``cadcon paths``)."""
     from . import projects
 
     active = projects.active_path()

@@ -44,7 +44,7 @@ for unknown extensions, so 3MF downloads need no web implementation changes.
 No web checks/build required under the packet's conditional obligation.
 
 Commands performed: native uv sync --locked --extra default; native uv run
---extra default cadctx --no-project info/generators/paths; native Mesher smoke
+--extra default cadcon --no-project info/generators/paths; native Mesher smoke
 script via explicit exchange.export; native uv run --extra default pytest;
 native uv run --extra default ruff check .; targeted initial pytest/lint and
 ruff format of new files. Full proof and CLI acceptance are recorded in test.md.

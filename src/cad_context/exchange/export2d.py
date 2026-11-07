@@ -36,8 +36,9 @@ def write_svg(geometry: Any, path: Path) -> Path:
     minx, miny, maxx, maxy = geometry.bounds
     width = (maxx - minx) + 2 * MARGIN
     height = (maxy - miny) + 2 * MARGIN
+    # SVG's display Y axis points down; CAD coordinates and other exports stay Y-up.
     drawing = drawsvg.Drawing(
-        width, height, origin=(minx - MARGIN, miny - MARGIN), id_prefix="cadctx"
+        width, height, origin=(minx - MARGIN, -maxy - MARGIN), id_prefix="cadcon"
     )
     exteriors, interiors = _rings(geometry)
     commands: list[str] = []
@@ -55,6 +56,7 @@ def write_svg(geometry: Any, path: Path) -> Path:
             fill_rule="evenodd",
             stroke="#1f2933",
             stroke_width=STROKE_WIDTH,
+            transform="scale(1,-1)",
         )
     )
     path.parent.mkdir(parents=True, exist_ok=True)

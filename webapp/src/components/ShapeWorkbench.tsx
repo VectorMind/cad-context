@@ -148,7 +148,7 @@ export default function ShapeWorkbench({ schema }: { schema: WorkbenchSchema }) 
           </span>
           <span className="timing">
             {state.lastMs === null ? '—' : `${state.lastMs} ms round-trip`}
-            {state.cliMs !== null && ` · ${state.cliMs} ms cadctx`}
+            {state.cliMs !== null && ` · ${state.cliMs} ms cadcon`}
           </span>
           <span className="counters">
             {state.stats.dispatched} sent · {state.stats.coalesced} coalesced ·{' '}

@@ -31,7 +31,7 @@
 
 ## Review-Time Decisions
 
-- `cadctx verify` is the accepted command name.
+- `cadcon verify` is the accepted command name.
 - Verification is format-aware rather than 3D-only.
 - A running web server never live-switches projects; restart is the explicit
   behavior.
@@ -46,7 +46,7 @@
 - `uv run pytest` — 75 passed.
 - `corepack pnpm check` — 23 files, zero errors/warnings/hints.
 - `corepack pnpm test` — 10 passed; `corepack pnpm build` completed.
-- All four built-ins passed `cadctx verify`; a copied external project passed
+- All four built-ins passed `cadcon verify`; a copied external project passed
   discovery, generation, verification, and live web artifact serving.
 - `project init --dry-run` validated the real cache-barriere folder without
   changing it.

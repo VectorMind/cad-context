@@ -1,4 +1,4 @@
-"""``cadctx`` — the single documented interface for humans and agents.
+"""``cadcon`` — the single documented interface for humans and agents.
 
 Console output stays minimal by contract: a status line, a few facts, and the
 path of the result file. The full payload of every run is in
@@ -22,6 +22,7 @@ from . import (
     backends,
     exchange,
     generators,
+    project_catalog,
     projects,
     results,
     web,
@@ -64,14 +65,14 @@ def main_options(
         Path | None,
         typer.Option(
             "--project",
-            help="Use this initialized model project for the command",
+            help="Use a catalog project ID or initialized project path",
         ),
     ] = None,
     no_project: Annotated[
         bool,
         typer.Option(
             "--no-project",
-            help="Ignore the environment and persisted active project",
+            help="Ignore all project selection, including the catalog default",
         ),
     ] = False,
 ) -> None:
@@ -177,7 +178,7 @@ def list_generators(ctx: typer.Context) -> None:
 def schema(
     ctx: typer.Context,
     generator: Annotated[
-        str, typer.Argument(help="Generator id (see `cadctx generators`)")
+        str, typer.Argument(help="Generator id (see `cadcon generators`)")
     ],
 ) -> None:
     """Print a generator's parameter schema (the web-app control contract)."""
@@ -534,7 +535,9 @@ def project_init(
 @project_app.command("use")
 def project_use(
     ctx: typer.Context,
-    path: Annotated[Path, typer.Argument(help="Initialized project folder")],
+    path: Annotated[
+        Path, typer.Argument(help="Catalog ID or initialized project folder")
+    ],
 ) -> None:
     """Persist the active project for subsequent commands."""
 
@@ -550,6 +553,40 @@ def project_use(
         )
 
     _run(ctx, "project-use", body)
+
+
+@project_app.command("root")
+def project_root(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Root name in config/projects.yaml")],
+    path: Annotated[Path, typer.Argument(help="This machine's project parent folder")],
+) -> None:
+    """Bind a portable storage root locally; never modifies the shared catalog."""
+    def body() -> results.Result:
+        resolved = project_catalog.bind(name, path)
+        return results.Result(
+            command="project-root", summary=f"bound root: {name}",
+            facts={"root": name, "path": str(resolved)},
+            files=[str(project_catalog.local_path())],
+            data={"root": name, "path": str(resolved)},
+        )
+    _run(ctx, "project-root", body)
+
+
+@project_app.command("list")
+def project_list(ctx: typer.Context) -> None:
+    """List catalog projects and immediate child project manifests in each root."""
+    def body() -> results.Result:
+        payload = project_catalog.listing()
+        rows = payload["projects"]
+        return results.Result(
+            command="project-list", summary=f"{len(rows)} projects",
+            facts={row["id"] or row["path"]:
+                   ("available" if row["available"] else "unavailable")
+                   + (" (default)" if row["default"] else "") for row in rows},
+            data=payload,
+        )
+    _run(ctx, "project-list", body)
 
 
 @project_app.command("clear")

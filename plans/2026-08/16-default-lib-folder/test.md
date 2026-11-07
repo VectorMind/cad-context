@@ -26,7 +26,7 @@ The maintainer answered the three residual points. Consistency checks:
 | --- | --- | --- |
 | OP-514 | `project.yaml` exposure block accepted; recorded with unchanged validation rules (names only) | as expected |
 | OP-515 | Recorded as modified: OpenSCAD live behind its flag as optional export; CadQuery removed entirely (code, extra, pins, override hack, probe); recovery info in README and/or spec; `.scad`-authorship nuance stated (not derivable from OCCT solids) | as expected |
-| OP-516 | Repurpose accepted with rename; proposed name `cadctx verify`, flagged as a review-time naming detail, not a blocking OP | as expected |
+| OP-516 | Repurpose accepted with rename; proposed name `cadcon verify`, flagged as a review-time naming detail, not a blocking OP | as expected |
 | Ledger closed | Resolution summary shows all 16 OPs accepted; no gating text remains in phases, non-goals, risks, or exit criteria | as expected |
 | No premature edits | Planning documents only; no source or dependency files changed | as expected |
 
@@ -40,7 +40,7 @@ The maintainer answered the three residual points. Consistency checks:
 | OP numbering | Continues after the external cache-barriere packet's OP-4xx range (handoff cites OP-408); no collision with OP-1xx/2xx/3xx from the three bringup packets | as expected |
 | OP format | Every OP lists candidates with a short argument each, names a proposal, carries confidence (high/medium/low) and status | as expected |
 | Handoff traceability | OP-501 adopts handoff OP-408; OP-504/505/510 cover the handoff's follow-up items (preferred implementation, validation level, stale memoization); the lean SDD workflow is carried by OP-513 | as expected |
-| Grounding against code | Claims checked against current sources: OCP conflict workaround in `pyproject.toml` (`override-dependencies`), fixed geometry paths in `src/cad_context/workspace.py`, single-root artifact serving and lifetime memoization in `webapp/src/server/cadctx.ts` and `webapp/src/pages/api/artifact/[...file].ts`, no cache-barriere trace anywhere in `src/` (grep) | as expected |
+| Grounding against code | Claims checked against current sources: OCP conflict workaround in `pyproject.toml` (`override-dependencies`), fixed geometry paths in `src/cad_context/workspace.py`, single-root artifact serving and lifetime memoization in `webapp/src/server/cadcon.ts` and `webapp/src/pages/api/artifact/[...file].ts`, no cache-barriere trace anywhere in `src/` (grep) | as expected |
 | Repo rules respected | No dependency file edited (OPs not yet accepted); no git commands run; no generated files outside `plans/` | as expected |
 | Index update | `plans/open.md` lists this packet as open | as expected |
 
@@ -80,7 +80,7 @@ The maintainer answered the three residual points. Consistency checks:
 
 ### Built-in discovery and format-aware verification
 
-`cadctx --no-project info`, `generators`, and `paths` reported repository mode,
+`cadcon --no-project info`, `generators`, and `paths` reported repository mode,
 four supported backends (`shapely`, `build123d`, `openscad`, `trimesh`), and four
 built-in generators.
 
@@ -107,9 +107,9 @@ A fresh copy of `tests/fixtures/sample_project` under `.cache/scratch/` proved:
 
 ### Live web acceptance
 
-`cadctx --project <copied-fixture> web --no-install --port 4399` started through
+`cadcon --project <copied-fixture> web --no-install --port 4399` started through
 the documented surface. Because 4399 was already occupied, Astro selected 4400
-and `cadctx` detected that actual URL. Over HTTP:
+and `cadcon` detected that actual URL. Over HTTP:
 
 - `/api/generators.json` listed `project-plate` under `sample-project` with
   editable `width`;
@@ -119,7 +119,7 @@ and `cadctx` detected that actual URL. Over HTTP:
 
 ### Real evidence-folder dry validation
 
-`cadctx project init "C:\Users\wassi\OneDrive\Partage Wassim
+`cadcon project init "C:\Users\wassi\OneDrive\Partage Wassim
 Mezri\cache-barriere" --dry-run` returned `ok project-init — project scaffold
 preview`. A subsequent read confirmed `project.yaml` was not created and the
 folder still contained only the original `dimensions.md` and image evidence.

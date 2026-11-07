@@ -84,7 +84,7 @@ def version(module: str) -> str | None:
 
 
 def status() -> list[dict[str, Any]]:
-    """One row per backend, for ``cadctx info``."""
+    """One row per backend, for ``cadcon info``."""
     from . import artifacts
 
     rows: list[dict[str, Any]] = []

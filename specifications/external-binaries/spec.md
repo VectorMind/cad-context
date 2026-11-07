@@ -23,7 +23,7 @@ before unpacking.
 
 ## Provisioning
 
-`cadctx fetch <name>` (or `--all`) resolves the asset for the current platform,
+`cadcon fetch <name>` (or `--all`) resolves the asset for the current platform,
 downloads it into `.cache/downloads/`, verifies it, unpacks it into the declared
 `install_dir` under `.tools/`, and reports the resolved executable path. A
 fetch that finds the tool already installed reports `cached` and does nothing;
@@ -43,7 +43,7 @@ reproducible.
 A missing external binary degrades the affected path instead of breaking it:
 the Python-side output is still produced (for a CSG backend, the source file),
 the dependent formats are recorded as skipped with a reason, and the command
-reports `degraded`. `cadctx info` shows which binaries resolved and which did
+reports `degraded`. `cadcon info` shows which binaries resolved and which did
 not. Test suites and CI stay green on a machine where no external binary has
 been fetched.
 

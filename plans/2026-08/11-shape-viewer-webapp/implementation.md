@@ -14,9 +14,9 @@ Web app (`webapp/`):
 | --- | --- |
 | `package.json`, `pnpm-workspace.yaml`, `astro.config.mjs`, `tsconfig.json` | Astro 5 SSR (node standalone) + React 19 islands, pnpm, strict TypeScript |
 | `config/exposure.json` | the curated editable surface: parameter *names* per generator, plus the preview format (OP-206) |
-| `src/server/cadctx.ts` | the only place that spawns anything: `uv run cadctx … --json`, memoized registry/schema/layout lookups, per-generator serialization |
+| `src/server/cadcon.ts` | the only place that spawns anything: `uv run cadcon … --json`, memoized registry/schema/layout lookups, per-generator serialization |
 | `src/server/exposure.ts` | filters a generator's schema to the exposed knobs and validates incoming values against it |
-| `src/pages/index.astro` | generator list, rendered from `cadctx generators` |
+| `src/pages/index.astro` | generator list, rendered from `cadcon generators` |
 | `src/pages/viewer/[generator].astro` | one page per generator; schema resolved server-side, island hydrated `client:only` |
 | `src/pages/api/generate.ts` | the regeneration contract endpoint |
 | `src/pages/api/artifact/[...file].ts` | serves `.cache/cad/` files, path-guarded, `no-store` |
@@ -36,22 +36,22 @@ the `web` command in `src/cad_context/cli.py`, and `tests/test_web.py`.
 
 Docs and contracts: `specifications/web-app/spec.md` (new), pointers from
 `specifications/README.md` and `specifications/parameter-schema/spec.md`, a
-"Preview In The Browser" section plus the `cadctx web` entry in `README.md`,
+"Preview In The Browser" section plus the `cadcon web` entry in `README.md`,
 and web-app rules in `AGENTS.md`.
 
 ## Implementation Facts
 
-- **The app owns no geometry.** Every shape fact is a `cadctx --json`
+- **The app owns no geometry.** Every shape fact is a `cadcon --json`
   subprocess: `generators`, `schema <id>`, `paths` (memoized for the life of
   the server) and `generate` (never cached). The `.cache/cad/` directory is
-  resolved from `cadctx paths`, not hardcoded.
+  resolved from `cadcon paths`, not hardcoded.
 - **Curated exposure (OP-206).** `config/exposure.json` lists 3 editable names
   per generator out of 5 (bracket) or 7 (plate). Unlisted parameters are
   returned read-only at their defaults and are rejected by `POST /api/generate`
   with a message naming the editable set. Type, minimum, maximum and integer
   checks run against the generator's own schema before anything is spawned, so
   the file carries names only.
-- **One command (OP-207).** `cadctx web` installs dependencies when
+- **One command (OP-207).** `cadcon web` installs dependencies when
   `node_modules/astro` is missing, probes backends, spawns `pnpm dev`, reads
   the URL back out of the dev server's log (Astro moves to the next free port
   when one is taken), polls until it answers, and only then emits its result
@@ -115,8 +115,8 @@ and web-app rules in `AGENTS.md`.
 - Prettier was not added (OP-205 named it as a default). Formatting is
   consistent by hand; adding it is a one-line follow-up if it ever drifts.
 - The plan spoke of loading artifacts "from `out/`"; Plan 1's OP-108 moved
-  geometry to `.cache/cad/`, and the app resolves that from `cadctx paths`.
-- `cadctx web` (OP-207) is new surface the plan did not anticipate.
+  geometry to `.cache/cad/`, and the app resolves that from `cadcon paths`.
+- `cadcon web` (OP-207) is new surface the plan did not anticipate.
 
 ## Follow-Up Risks
 
@@ -139,16 +139,16 @@ and web-app rules in `AGENTS.md`.
   because it is an exchange-format change, not a renderer one.
 - Only Chromium was exercised (headless, via a throwaway Playwright script in
   the scratchpad). No mobile or Safari pass.
-- The app assumes `uv` on PATH; `CADCTX_COMMAND` overrides the launcher for
-  environments where `cadctx` is already installed.
+- The app assumes `uv` on PATH; `CADCON_COMMAND` overrides the launcher for
+  environments where `cadcon` is already installed.
 - A generator whose backend is missing shows an empty page with the CLI's error
   in the status bar; it is honest but not pretty.
 
 ## Commands That Matter
 
 ```bash
-uv run cadctx web                 # install (first run), preflight, serve, print the URL
-uv run cadctx web --port 4400 --open
+uv run cadcon web                 # install (first run), preflight, serve, print the URL
+uv run cadcon web --port 4400 --open
 cd webapp && pnpm build           # production SSR build
 cd webapp && pnpm check           # astro check / TypeScript
 cd webapp && pnpm test            # regeneration scheduler rules

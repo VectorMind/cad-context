@@ -13,7 +13,7 @@ for the record; runtime proof follows.
 - Reproducibility note: a bare resolve fails twice over — see the dependency
   conflicts in `implementation.md`. Both fixes are in `pyproject.toml`, so a
   clean `uv sync --extra all` succeeds from the committed files alone.
-- OpenSCAD 2021.01 provisioned by `cadctx fetch openscad` to
+- OpenSCAD 2021.01 provisioned by `cadcon fetch openscad` to
   `.tools/openscad/openscad-2021.01/openscad.exe`.
 
 ## Fixtures
@@ -27,12 +27,12 @@ workspace cache into `tmp_path` via `CAD_CONTEXT_CACHE`.
 
 ```bash
 uv sync --extra all
-uv run cadctx fetch openscad
-uv run cadctx info
-uv run cadctx demo
-uv run cadctx compare
-uv run cadctx generate plate2d -p width=160 -p slot_count=5
-uv run cadctx generate bracket-cadquery -p width=120 -p hole_diameter=10 -f glb
+uv run cadcon fetch openscad
+uv run cadcon info
+uv run cadcon demo
+uv run cadcon compare
+uv run cadcon generate plate2d -p width=160 -p slot_count=5
+uv run cadcon generate bracket-cadquery -p width=120 -p hole_diameter=10 -f glb
 uv run pytest
 uv run ruff check .
 ```
@@ -43,7 +43,7 @@ Expected: clean install of all extras. Actual: succeeded (106 packages) after
 the two dependency pins recorded in `pyproject.toml`; both kernels import in
 the same interpreter (`cq 2.8.0 b3d 0.11.1`).
 
-## Exit Criterion 2 — `cadctx fetch openscad`
+## Exit Criterion 2 — `cadcon fetch openscad`
 
 Expected: download, unpack and resolve an executable into `.tools/` from
 `config/artifacts.yaml` alone.
@@ -65,7 +65,7 @@ console. A first attempt with tag `2021.01` failed as designed — one line,
 
 ## Exit Criterion 3 — Artifacts at fixed `.cache/cad/` paths
 
-`cadctx demo` → `ok demo — 4/4 generators clean, 11 artifacts`. Files written
+`cadcon demo` → `ok demo — 4/4 generators clean, 11 artifacts`. Files written
 (sizes from a clean run):
 
 | Path | Bytes |
@@ -154,7 +154,7 @@ reading the CLI's command list against the README section headings.
   `bracket-openscad` still writes `.scad`, reports STL and GLB as skipped with
   the reason "OpenSCAD binary not found", and does not raise
   (`test_openscad_degrades_to_source_when_the_binary_is_absent`).
-- **Failures produce results**: `cadctx generate plate2d -p width=-5` exits 1,
+- **Failures produce results**: `cadcon generate plate2d -p width=-5` exits 1,
   prints 3 lines, and leaves a `status: error` result file plus a traceback
   report (`test_bad_parameter_fails_with_a_result_file_and_exit_code`).
 - **The Python API writes nothing**: `test_api_build_writes_nothing` snapshots

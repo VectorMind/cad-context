@@ -1,7 +1,7 @@
 /**
  * Curated parameter exposure.
  *
- * A generator's parameter model is the full truth (`cadctx schema <id>`), but
+ * A generator's parameter model is the full truth (`cadcon schema <id>`), but
  * the API deliberately publishes only a few knobs per generator, listed in
  * `config/exposure.json`. Two reasons: the panel stays a preview-and-tweak
  * surface instead of a form over every field, and `POST /api/generate` accepts
@@ -22,7 +22,7 @@ import {
   type GeneratorInfo,
   type GeneratorSchema,
   type ParameterSpec,
-} from './cadctx.ts';
+} from './cadcon.ts';
 
 export interface GeneratorExposure {
   editable: string[];

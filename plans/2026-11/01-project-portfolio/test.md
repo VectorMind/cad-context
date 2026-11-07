@@ -22,7 +22,7 @@ Operational logs: `.cache/reports/portfolio-final-pytest.out`,
 Model migration remains incomplete: front STEP check fails; both historical
 volume checks fail. Draft status is visible and elephant migration remains deferred.
 
-After restarting cadctx web on 2026-11-02, HTTP checks passed for 20 declared
+After restarting cadcon web on 2026-11-02, HTTP checks passed for 20 declared
 page/assets/models, including legacy download links. Undeclared parameters and
 Python-source requests returned 404. Evidence: `.cache/reports/portfolio-http.json`.
 Fresh browser capture was unavailable because the browser access host was offline;

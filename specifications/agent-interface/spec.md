@@ -2,22 +2,26 @@
 
 ## CLI Surface
 
-`cadctx` is the documented interface for every artifact-producing capability.
+`cadcon` is the documented interface for every artifact-producing capability.
 Commands are non-interactive, write structured result files, and are documented
 in `README.md`. A capability without a documented command is not delivered.
+
+The installed console entry point is `cadcon`, invoked with `uv run cadcon` in
+the checkout. The Python package remains `cad_context` and the distribution
+remains `cad-context`. The CLI rename does not retain a legacy command alias.
 
 Global discovery and selection options are `--json`, `--quiet`, `--project`,
 and `--no-project`. Machine-readable discovery is:
 
-- `cadctx info` — supported backend/tool availability and active project;
-- `cadctx generators` — merged built-in/project registry and artifact roots;
-- `cadctx schema <generator>` — parameter and exposure contract;
-- `cadctx paths` — operational and per-generator output paths;
-- `cadctx project info` — active project metadata without importing code.
+- `cadcon info` — supported backend/tool availability and active project;
+- `cadcon generators` — merged built-in/project registry and artifact roots;
+- `cadcon schema <generator>` — parameter and exposure contract;
+- `cadcon paths` — operational and per-generator output paths;
+- `cadcon project info` — active project metadata without importing code.
 
 Artifact commands are `generate`, `demo`, `verify`, and `fetch`. Project
 lifecycle commands are `project init`, `project use`, `project clear`, and
-`project info`. The preview server is started only through `cadctx web`.
+`project info`. The preview server is started only through `cadcon web`.
 
 ## Python API
 

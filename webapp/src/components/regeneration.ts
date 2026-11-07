@@ -49,7 +49,7 @@ export interface RegenerationState {
   busy: boolean;
   /** Round-trip of the last applied response, milliseconds. */
   lastMs: number | null;
-  /** Server-side `cadctx` time of the last applied response, milliseconds. */
+  /** Server-side `cadcon` time of the last applied response, milliseconds. */
   cliMs: number | null;
   stats: RegenerationStats;
 }

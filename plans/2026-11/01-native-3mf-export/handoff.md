@@ -17,7 +17,7 @@ external animal-puzzle migration, beginning with the accepted bear.
 - Preserve reviewed curves, canonical seams, engraving endpoints and existing
   releases. Compare reconstructed geometry and appearance before continuing
   design work. Do not retrace accepted artwork unnecessarily.
-- Use build123d Mesher/lib3mf through cadctx for generic geometry-only 3MF,
+- Use build123d Mesher/lib3mf through cadcon for generic geometry-only 3MF,
   one physical piece per file. No new CAD backend or slicer automation.
 - Resolve routine technical choices autonomously. Ask only for an actual design
   decision or a demonstrated discrepancy requiring a change to accepted shape.
@@ -65,9 +65,9 @@ C:\Users\wassi\My Drive\Flatshare\3D Models Shared\projects\2026-10-24-animal-pu
 
 Within that external project read:
 
-1. `HANDOFF-CADCTX.md`
-2. `specifications/cadctx-migration/spec.md`
-3. `plans/2026-11/01-cadctx-handoff/plan.md` and `test.md`
+1. `HANDOFF-CADCON.md`
+2. `specifications/cadcon-migration/spec.md`
+3. `plans/2026-11/01-cadcon-handoff/plan.md` and `test.md`
 4. Current `handoff.md`, `parameters.json`, `spec.md`,
    `spec/visual-fidelity.md` and `spec/lessons-learned.md`
 5. Shared parent `AGENTS.md` and `workflow.md`, interpreted with the user's
@@ -85,7 +85,7 @@ another session or Drive sync may have changed the folder.
 ## Immediate next work
 
 1. Read the current repository AGENTS.md and prove the native runtime with
-   cadctx info/generators/paths. Use `--extra default` with uv run to retain
+   cadcon info/generators/paths. Use `--extra default` with uv run to retain
    installed geometry extras. Do not recreate the Windows environment.
 2. Reconcile the external migration packet with the now-complete 3MF dependency.
    Create its implementation.md when model implementation begins, following
@@ -93,7 +93,7 @@ another session or Drive sync may have changed the folder.
 3. Inventory baseline inputs/exports and record their hashes as evidence.
    Check current metadata before replacing existing documents. Add a scoped
    project workflow override so other shared projects retain their policies.
-4. Run `cadctx project init <path> --dry-run`, inspect the scaffold, then init
+4. Run `cadcon project init <path> --dry-run`, inspect the scaffold, then init
    if the manifest is still absent. Use global `--project <path>` during initial
    validation. Selecting the project later trusts its Python generator code.
 5. Recreate the bear from `inputs/bear-r007-beziers.json`,
@@ -104,7 +104,7 @@ another session or Drive sync may have changed the folder.
    `exports/bear-r008-review.step` and r008 evidence: exact source curves,
    placement, bounds, volumes, seams, named landmarks and actual top-view
    overlays. Preserve independent analytic or explicitly approximate references.
-7. Generate and verify STEP/STL/GLB/3MF through cadctx. Outputs belong at stable
+7. Generate and verify STEP/STL/GLB/3MF through cadcon. Outputs belong at stable
    `cad/<generator>/` paths with measurement sidecars. Verify the actual 3MF,
    not merely an accompanying STL. Update project test evidence and portfolio.
 8. Once bear parity is established, repeat for the elephant using
@@ -133,13 +133,13 @@ Example native PowerShell invocation pattern, from the workbench directory:
 ```powershell
 New-Item -ItemType Directory -Force '.cache\reports' | Out-Null
 $process = Start-Process -FilePath 'C:\Users\wassi\.local\bin\uv.exe' `
-  -ArgumentList 'run --extra default cadctx --no-project info' `
+  -ArgumentList 'run --extra default cadcon --no-project info' `
   -Wait -PassThru -NoNewWindow `
   -RedirectStandardOutput '.cache\reports\handoff-info.out' `
   -RedirectStandardError '.cache\reports\handoff-info.err'
 Get-Content '.cache\reports\handoff-info.out'
 Get-Content '.cache\reports\handoff-info.err'
-if ($process.ExitCode -ne 0) { throw "cadctx exited $($process.ExitCode)" }
+if ($process.ExitCode -ne 0) { throw "cadcon exited $($process.ExitCode)" }
 ```
 
 Quote the full external project path when constructing process arguments; it
@@ -165,7 +165,7 @@ approved dimension. If parity requires changing accepted bear appearance,
 present the specific discrepancy and alternatives before making that change.
 
 Local file readback is not proof of remote Google Drive synchronization.
-Keep those claims separate. Use only cadctx web for the preview server and
+Keep those claims separate. Use only cadcon web for the preview server and
 restart it after switching projects.
 
 ## Suggested first message in the fresh conversation

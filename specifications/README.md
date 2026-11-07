@@ -17,7 +17,7 @@ and running notes in `plans/` instead.
 - [`workspace-layout/`](workspace-layout/spec.md) — the single `.cache/` output
   root, the per-command result files, console quietness, fixed geometry paths,
   and the rule that in-memory work writes nothing.
-- [`agent-interface/`](agent-interface/spec.md) — the `cadctx` CLI as the single
+- [`agent-interface/`](agent-interface/spec.md) — the `cadcon` CLI as the single
   documented interface for humans and agents, no skills, documentation-based
   routing, and the side-effect-free Python API as the second surface.
 - [`exchange-formats/`](exchange-formats/spec.md) — which formats each generator
@@ -33,7 +33,7 @@ and running notes in `plans/` instead.
   contract (full params, `changed`, `seq`, one request in flight, latest-wins),
   and how artifacts are served.
 - [`external-binaries/`](external-binaries/spec.md) — external tools declared in
-  `config/artifacts.yaml`, provisioned by `cadctx fetch` into `.tools/`, and
+  `config/artifacts.yaml`, provisioned by `cadcon fetch` into `.tools/`, and
   degrading gracefully when absent.
 - [`backend-policy/`](backend-policy/spec.md) — build123d as the maintained
   B-rep path, OpenSCAD as an optional project toolchain, and the contract for

@@ -1,7 +1,7 @@
 /**
  * Serves generated geometry out of `.cache/cad/`.
  *
- * The directory is resolved from `cadctx paths`, never hardcoded, and a
+ * The directory is resolved from `cadcon paths`, never hardcoded, and a
  * request can only reach a file inside it.
  */
 import { createReadStream } from 'node:fs';
@@ -11,7 +11,7 @@ import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
 
-import { listGenerators } from '../../../server/cadctx.ts';
+import { listGenerators } from '../../../server/cadcon.ts';
 
 export const prerender = false;
 

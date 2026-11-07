@@ -53,7 +53,7 @@ step that turns the page from a shape viewer into a design tool.
   brittle to automate on Windows — wrong for the live loop, right as a
   validation tool for surrogate numbers. If adopted, its binary should be
   provisioned through Plan 1's config-driven artifact fetch
-  (`config/artifacts.yaml` + `cadctx fetch xfoil`), which was designed
+  (`config/artifacts.yaml` + `cadcon fetch xfoil`), which was designed
   with exactly this reuse in mind.
 - What it could look like: geometry stays the committed product; aero
   numbers arrive as an extra `aero` block in the regeneration response,

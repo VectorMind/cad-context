@@ -72,12 +72,12 @@ A generator declaring `json` without a payload raises `ValueError`, not
 
 ### Generator families
 
-A second 3D part broke an assumption `cadctx compare` had been getting away
+A second 3D part broke an assumption `cadcon compare` had been getting away
 with — that every 3D generator builds the bracket. `GeneratorSpec.family` makes
 the grouping explicit:
 
 - `generators.family(name, kind=...)` / `families()`.
-- `cadctx compare --family bracket|wing`, writing `compare-<family>.json` (the
+- `cadcon compare --family bracket|wing`, writing `compare-<family>.json` (the
   same shape as `generate-<generator>`), and `api.compare(family=...)`.
 - The pytest fixture `generator_3d` became `bracket_3d`, and conftest now
   parametrises any `<family>_3d` fixture. The fixture always *meant* "the
@@ -96,7 +96,7 @@ the grouping explicit:
   **two schedulers**. A change is routed only to the generators that declare
   it, so `twist` never re-runs the 2D profile and the 0.6 s redraw never queues
   behind the 4 s loft.
-- The backend selector is built from `cadctx generators` filtered to
+- The backend selector is built from `cadcon generators` filtered to
   `family === 'wing'`, so the page names no backend and a third implementation
   would appear by registering.
 - `ShapeWorkbench` gained the `json` preview case, so `/viewer/airfoil` works

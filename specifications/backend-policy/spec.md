@@ -17,7 +17,7 @@ Shapely, trimesh, manifold3d, ezdxf, and drawsvg. These are required project
 dependencies so CLI and web subprocesses need no extra selection. The former
 `build123d`, `mesh`, `vector2d`, and `default` extras remain accepted compatibility
 names. SolidPython2 remains opt-in through `openscad` or `all`; its external
-renderer is provisioned separately through `cadctx fetch openscad`.
+renderer is provisioned separately through `cadcon fetch openscad`.
 
 External projects are repository-independent when they use this supported
 toolchain. Arbitrary project-specific Python dependencies and isolated project

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+import xml.etree.ElementTree as ET
+
 import pytest
 
 from cad_context import api, backends, exchange, workspace
@@ -51,6 +54,36 @@ def test_2d_exports_round_trip(tmp_path):
 
     svg = export2d.read_svg_metrics(exported["files"]["svg"])
     assert svg["has_viewbox"] and svg["paths"] == 1
+
+
+@pytest.mark.skipif(not backends.available("shapely"), reason="shapely missing")
+def test_svg_paints_positive_cad_y_above_the_base(tmp_path):
+    from shapely.geometry import Polygon
+
+    # An asymmetric, translated triangle exposes flips hidden by symmetric plates.
+    geometry = Polygon([(5, 7), (25, 7), (5, 17)])
+    path = export2d.write_svg(geometry, tmp_path / "triangle.svg")
+    root = ET.parse(path).getroot()
+    outline = root.find("{http://www.w3.org/2000/svg}path")
+    assert outline is not None
+    points = [
+        (float(x), float(y))
+        for x, y in re.findall(r"[ML]\s*([-\d.]+),?\s+([-\d.]+)", outline.attrib["d"])
+    ]
+    scale = re.search(r"scale\(([^)]+)\)", outline.get("transform", ""))
+    sx, sy = (
+        [float(value) for value in scale.group(1).replace(",", " ").split()]
+        if scale
+        else [1.0, 1.0]
+    )
+    painted = [(x * sx, y * sy) for x, y in points]
+    assert painted[2][1] < painted[0][1]  # CAD apex is visually above the base.
+    assert painted[1][0] > painted[0][0]  # Horizontal orientation is preserved.
+    left, top, width, height = map(float, root.attrib["viewBox"].split())
+    assert min(x for x, _ in painted) - left == pytest.approx(export2d.MARGIN)
+    assert min(y for _, y in painted) - top == pytest.approx(export2d.MARGIN)
+    assert max(x for x, _ in painted) <= left + width
+    assert max(y for _, y in painted) <= top + height
 
 
 def test_3d_exports_round_trip_and_measure(tmp_path, bracket_3d):

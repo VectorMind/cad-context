@@ -104,9 +104,9 @@ exactness the two kernels still agree with each other **bit for bit**, which is
 what the cross-backend criterion actually asks.
 
 ```
-uv run cadctx compare --family wing -p twist=0 --tolerance 0.000001
+uv run cadcon compare --family wing -p twist=0 --tolerance 0.000001
   → ok · max deviation 0.0000% vs analytic (tolerance 0.0%)
-uv run cadctx compare --family wing -p twist=-9
+uv run cadcon compare --family wing -p twist=-9
   → ok · max deviation 0.4298% vs analytic (tolerance 1.0%); both backends 2.318e+05
 ```
 
@@ -115,7 +115,7 @@ CadQuery 0.04–0.14 s; 300 stations 0.81 s in build123d, still exact to 1.1e-15
 
 ### Exports
 
-`uv run cadctx generate wing-build123d` / `wing-cadquery`, defaults:
+`uv run cadcon generate wing-build123d` / `wing-cadquery`, defaults:
 
 - STEP re-imported through a kernel: volume within 1e-6 of the kernel volume
   (`test_wing_exports_round_trip`).
@@ -126,7 +126,7 @@ CadQuery 0.04–0.14 s; 300 stations 0.81 s in build123d, still exact to 1.1e-15
   STL size difference is each kernel's default encoding, not a geometry
   difference; the measured volumes match.
 
-`uv run cadctx generate airfoil`, defaults, measurements from
+`uv run cadcon generate airfoil`, defaults, measurements from
 `.cache/results/generate-airfoil.json`:
 
 ```
@@ -140,7 +140,7 @@ against the continuous limit at the default resolution.
 
 ## Phase 3 — The Web Page
 
-Served with `uv run cadctx web --port 4399`; measured with curl against the
+Served with `uv run cadcon web --port 4399`; measured with curl against the
 running app.
 
 | Request | Result |

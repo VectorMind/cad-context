@@ -6,6 +6,10 @@ Shared behavior crosses backend boundaries only through files. No module outside
 a generator or exporter interprets a backend-native object. Units are
 millimetres; 3D is Z-up; 2D is Y-up on the generator's declared datum.
 
+SVG maps CAD Y-up coordinates into its downward display axis so positive Y
+appears above the datum. Its view box encloses the transformed geometry with
+the usual margin. DXF and JSON retain the original CAD coordinates.
+
 | Generator path | Required outputs | Additional output |
 | --- | --- | --- |
 | 2D Shapely | SVG and DXF | JSON coordinate payload when useful |
@@ -46,7 +50,7 @@ Tessellated, faceted, 2D approximated, or explicitly approximate references use
 native kernel measurement to 1e-6. Meshes must be watertight when they represent
 a closed 3D solid.
 
-`cadctx verify <generator>` applies the relevant checks by kind and declared
+`cadcon verify <generator>` applies the relevant checks by kind and declared
 formats. A failed required check is an error. An unavailable optional external
 tool produces `degraded` only when every available check passes.
 
@@ -75,3 +79,21 @@ verification fail. Only OpenSCAD STL/GLB rendering is an optional external skip.
 default verification. Its volume must match native and analytic values within
 1%; bounds must match native values at 1% relative or 1e-6 mm absolute near zero.
 Accompanying STL measurements never substitute for 3MF measurements.
+# Generator export quality
+
+A generator may return `BuildResult(..., tessellation=Tessellation(...))` using
+`cad_context.types.Tessellation`. Both deflections must be finite and positive.
+STL, GLB (through STL), and build123d Mesher 3MF receive the supplied linear and
+angular deflections. The default remains 0.01 / 0.1 when no profile is supplied.
+These values are passed to the maintained kernel/exporter APIs; they do not
+change native B-rep geometry or verification tolerances. Project measurement
+sidecars and API summaries record the profile. Models may use separate preview
+and print generators when fine sampling creates large artifacts. A profile is
+not a print/material setting and never authorizes mesh repair.
+
+`Tessellation(stl_writer="mesher")` explicitly selects build123d's native
+Mesher/lib3mf STL writer instead of the default OCCT STL writer. Both receive
+the same deflections. Use this when measured fine features require the native
+Mesher path; it does not authorize post-export triangle cleanup. GLB continues
+to derive from that STL. The selected writer is recorded in non-default quality
+profiles; omitted selection preserves the existing default behavior and payload.

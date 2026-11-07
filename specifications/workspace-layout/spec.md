@@ -16,6 +16,14 @@ configuration; Windows retains plain `uv sync`. Environment separation permits
 cross-platform validation without modifying another platform's installed
 packages, executables, or symlinks.
 
+## Portable And Local Project Configuration
+
+`config/projects.yaml` is versioned portable project/root/default configuration.
+`config/projects.local.yaml` is ignored machine-specific root configuration,
+written by `cadcon project root`. Unlike the temporary active-project pointer,
+these bindings survive clearing `.cache/`. See the model-projects specification
+for precedence, discovery, confinement, and trust contracts.
+
 ## Operational Cache
 
 Every operational result remains below the repository's git-ignored cache:
@@ -44,8 +52,8 @@ operational noise in the repository cache:
 ```
 
 Built-in generators continue to write under `.cache/cad/`, even while a project
-is active. Consumers resolve per-generator artifact roots from `cadctx
-generators` or `cadctx paths`; they never infer one global root.
+is active. Consumers resolve per-generator artifact roots from `cadcon
+generators` or `cadcon paths`; they never infer one global root.
 
 ## Results: Small, Structured, One Per Command
 

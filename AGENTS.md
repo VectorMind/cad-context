@@ -14,7 +14,7 @@ export UV_PROJECT_ENVIRONMENT="$PWD/.cache/scratch/venv-linux"
 ```
 
 Apply this before the startup commands below, installation, tests, lint, and
-`cadctx web`; child processes must inherit it. An existing isolated Linux
+`cadcon web`; child processes must inherit it. An existing isolated Linux
 validation environment may be reused. Never let Linux/WSL `uv` create, sync,
 replace, or remove the shared `.venv`, even if it appears missing or broken.
 Do not use `uv --active` to select a Windows environment from Linux. If `uv`
@@ -25,23 +25,23 @@ shared `pyproject.toml` configuration so plain Windows `uv sync` stays unchanged
 Run these before touching code; each writes a result that can be re-read:
 
 ```bash
-uv run cadctx info
-uv run cadctx generators
-uv run cadctx paths
+uv run cadcon info
+uv run cadcon generators
+uv run cadcon paths
 ```
 
 Machine-readable answers are under `.cache/results/`; `last.json` is the newest.
 
 ## Two Surfaces
 
-### `cadctx` produces artifacts
+### `cadcon` produces artifacts
 
-`cadctx` is the documented interface for humans and agents. A capability not
+`cadcon` is the documented interface for humans and agents. A capability not
 reachable through a documented command is not delivered. Add a command and its
 README entry together. Use `--json` to parse output and `--quiet` for only the
 result path.
 
-The preview server is started only with `cadctx web`; do not serve with pnpm or
+The preview server is started only with `cadcon web`; do not serve with pnpm or
 add a second long-running Python service.
 
 ### `cad_context.api` answers questions
@@ -109,14 +109,22 @@ projects, working on a model requires no repository edit.
 Initialize before selection:
 
 ```bash
-uv run cadctx project init <path>
-uv run cadctx project use <path>
+uv run cadcon project init <path>
+uv run cadcon project use <path>
 ```
 
 Use global `--project <path>` for one command and `--no-project` to force
 repository mode. Selecting a project trusts its Python code. The manifest,
 loader, collision, and output contracts are in
 `specifications/model-projects/spec.md`.
+
+Portable project IDs and the default live in versioned `config/projects.yaml`.
+Bind this machine's storage with `cadcon project root <name> <path>` (ignored
+`config/projects.local.yaml`); inspect with `cadcon project list`. Selection also
+accepts catalog IDs. `project clear` restores the catalog default; `--no-project`
+bypasses it. Never commit machine-specific root bindings.
+Automatic discovery requires a valid `project.yaml` with explicit `tool: cadcon`;
+new `project init` scaffolds include it. Unrelated projects are not listed.
 
 A project generator declares its module and `ShapeParams` subclass in
 `project.yaml`; its module exposes `build(params) -> BuildResult`. Import kernels
@@ -127,7 +135,7 @@ and ensure defaults produce a valid shape.
 
 `webapp/` is a preview surface, never a second geometry implementation.
 
-- Ask `cadctx --json` for registry, schema, paths, and fresh artifacts.
+- Ask `cadcon --json` for registry, schema, paths, and fresh artifacts.
 - Built-in editable names live in `webapp/config/exposure.json`; project names
   live in `project.yaml`. Never copy ranges, units, or defaults there.
 - One server process snapshots one active project. Restart to switch.
@@ -136,7 +144,7 @@ and ensure defaults produce a valid shape.
 
 ## External Tools
 
-Declare external binaries in `config/artifacts.yaml`; `cadctx fetch <name>` is
+Declare external binaries in `config/artifacts.yaml`; `cadcon fetch <name>` is
 the only provisioning path. Missing tools degrade with explicit skipped formats
 instead of crashing.
 
@@ -149,7 +157,7 @@ Geometry proof means measurement:
 - re-read DXF/SVG/JSON and check structure, bounds, and units;
 - compare exact 3D kernel/reference values at 1e-6 relative and tessellated,
   faceted, 2D-approximated, or explicitly approximate values at 1%;
-- run `cadctx verify <generator>` for delivered generators;
+- run `cadcon verify <generator>` for delivered generators;
 - run `uv run pytest` and `uv run ruff check .`;
 - run the web check, tests, and build when web surfaces change;
 - record commands, expected/actual results, and gaps in the packet `test.md`.

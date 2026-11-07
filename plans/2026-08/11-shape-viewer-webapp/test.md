@@ -4,7 +4,7 @@ Environment: Windows 11, Node v22.21.1, pnpm 10.22.0, uv 0.11.19, Python
 3.12.13, Astro 5.18.2, three 0.180.0, leva 0.10.1. All five backends
 available (`shapely, cadquery, build123d, openscad, trimesh`), OpenSCAD binary
 resolved from `.tools/`. The API and browser checks below ran against a server
-started with `uv run cadctx web --port 4399`; the startup section repeats the
+started with `uv run cadcon web --port 4399`; the startup section repeats the
 run on the default port.
 
 ## Planning-Stage Checks (2026-08-11)
@@ -30,7 +30,7 @@ run on the default port.
 
 ## Starting Both Halves (OP-207)
 
-`uv run cadctx web` from a clean start (console, verbatim):
+`uv run cadcon web` from a clean start (console, verbatim):
 
 ```text
 ok web — serving http://127.0.0.1:4321/ (5/5 backends ready)
@@ -104,7 +104,7 @@ analytic volume on every 3D request (e.g. 87395.04440784613 both ways).
 | `bracket-build123d` | GLB | 3561 / 3473 / 3482 | 3561 / 3472 / 3482 |
 
 `total_ms - cli_ms` is 0–2 ms: the endpoint's own overhead is nil, the cost is
-the `uv run cadctx` process (interpreter + OCCT import) plus the export.
+the `uv run cadcon` process (interpreter + OCCT import) plus the export.
 
 **OP-204 (a)→(b) go/no-go.** Mode (a) is *kept* for now. It is comfortable for
 2D (~0.36 s feels immediate) and workable for 3D as a preview loop — the
@@ -157,7 +157,7 @@ repository per the workspace rules):
 | Page | Expected | Actual |
 | --- | --- | --- |
 | `/` | four generator cards with backend, formats and exposed knobs | rendered, links to each viewer |
-| `/viewer/plate2d` | inline SVG with pan/zoom, three sliders, measured area | `svg: true`, controls `width (mm), slot_count, slot_width (mm)`, metrics `area, area_analytic, perimeter, rings`, `398 ms round-trip · 391 ms cadctx`, no console errors |
+| `/viewer/plate2d` | inline SVG with pan/zoom, three sliders, measured area | `svg: true`, controls `width (mm), slot_count, slot_width (mm)`, metrics `area, area_analytic, perimeter, rings`, `398 ms round-trip · 391 ms cadcon`, no console errors |
 | `/viewer/bracket-build123d` | WebGL canvas with the bracket, orbit controls, grid | `canvas: true`, metrics `volume, volume_analytic, area`, model visible and framed, no console errors |
 
 Camera behaviour checked visually across a regeneration: after dragging width
@@ -188,5 +188,5 @@ passed, `pnpm build` complete after the change.
   STL path is exercised only by code inspection, not by a served page.
 - DXF and STEP are downloadable through the artifact route but have no viewer.
 - `.cache/reports/web.log` grows for the life of a server run; it is truncated
-  on the next `cadctx web`.
+  on the next `cadcon web`.
 - No load test beyond two concurrent clients.

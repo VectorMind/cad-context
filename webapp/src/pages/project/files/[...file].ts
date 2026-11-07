@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import type { APIRoute } from 'astro';
-import { projectInfo } from '../../../server/cadctx.ts';
+import { projectInfo } from '../../../server/cadcon.ts';
 import { portfolioFile } from '../../../server/portfolio.ts';
 
 export const prerender = false;

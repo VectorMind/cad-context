@@ -28,7 +28,7 @@ implementation and supersedes the earlier `out/` convention. One-glance state
 | OP-103 | OpenSCAD path | solidpython2 + fetch script pulling the binary from GitHub releases via an artifact config file; graceful degrade | medium | accepted |
 | OP-104 | Mesh layer / booleans | trimesh + manifold3d; GLB bridge to web app | high | accepted |
 | OP-105 | 2D vector stack | ezdxf + drawsvg + shapely | high (drawsvg medium) | accepted |
-| OP-106 | Base runtime / CLI | numpy, pydantic, typer, rich; `cadctx` CLI as the single documented interface for humans *and* agents — no skills; includes a simple parametric demo shape exposing a few parameters (amendment from Plan 2, 2026-08-11) | high | accepted |
+| OP-106 | Base runtime / CLI | numpy, pydantic, typer, rich; `cadcon` CLI as the single documented interface for humans *and* agents — no skills; includes a simple parametric demo shape exposing a few parameters (amendment from Plan 2, 2026-08-11) | high | accepted |
 | OP-107 | Tooling | uv, ruff, pytest, evidence-engine conventions | high | accepted |
 | OP-108 | Output layout and second surface | all execution output under git-ignored `.cache/` (`results/`, `reports/`, `cad/`, `scratch/`); minimal console; geometry at fixed per-generator paths; side-effect-free Python API alongside the CLI — supersedes `out/` | high | accepted |
 
@@ -104,7 +104,7 @@ binaries are managed as declared artifacts, not manual installs:
   pattern per platform (e.g. `OpenSCAD-*-x86-64.zip` for Windows), an
   optional checksum, the install directory (`.tools/<name>/`), and the
   executable's relative path inside the unpacked asset.
-- A fetch command (`cadctx fetch openscad`, or `cadctx fetch --all`) reads
+- A fetch command (`cadcon fetch openscad`, or `cadcon fetch --all`) reads
   the config, downloads the matching asset from the repo's GitHub releases,
   verifies, unpacks into `.tools/`, and reports the resolved executable
   path. Runtime binary detection (above) checks `.tools/` first, then
@@ -152,7 +152,7 @@ binaries are managed as declared artifacts, not manual installs:
 - Options: typer + rich (evidence-engine house style) vs argparse-only vs no
   CLI at all in this packet.
 - Proposal: base deps `numpy`, `pydantic`, `typer`, `rich`; a minimal
-  `cadctx` CLI with `cadctx demo <backend>` producing exports into `out/`.
+  `cadcon` CLI with `cadcon demo <backend>` producing exports into `out/`.
   Pydantic models anticipate the Plan 2 parameter-schema contract.
 - Confidence: high (raised from medium at acceptance — the CLI is no longer
   optional, it is the interface contract). Status: **accepted 2026-08-11
@@ -160,13 +160,13 @@ binaries are managed as declared artifacts, not manual installs:
 
 **Amendment (accepted 2026-08-11): the CLI is the single interface for
 humans *and* agents.** Every important capability is wrapped as a typer
-subcommand (`cadctx demo`, `cadctx fetch`, generators as they land), and
+subcommand (`cadcon demo`, `cadcon fetch`, generators as they land), and
 every command is documented in `README.md` so that both a human and an
 agent can drive the repo from documentation alone, in one prompt. The repo
 deliberately targets **no agent skills**: instead of skill packages,
 routing lives in plain documentation files (`README.md` command reference,
 `AGENTS.md` pointers) that any agent reads and acts on directly. A
-capability that is not reachable through a documented `cadctx` command is
+capability that is not reachable through a documented `cadcon` command is
 not considered delivered. This is a durable, wisdom-level rule — fold it
 into the spec at the Phase 5 spec fold.
 
@@ -174,8 +174,8 @@ into the spec at the Phase 5 spec fold.
 resolution): simple parametric demo.** Exposing a small set of parameters
 on a shape is relevant to the CAD side generally, not only to the web app.
 At least one demo shape must expose a few parameters through the pydantic
-parameter-schema models and a documented `cadctx` command (e.g.
-`cadctx demo bracket --param width=40`), serving as the first end-to-end
+parameter-schema models and a documented `cadcon` command (e.g.
+`cadcon demo bracket --param width=40`), serving as the first end-to-end
 CAD-side example of the parameter-schema contract that the Plan 2 web app
 consumes.
 
@@ -225,7 +225,7 @@ requires-python = ">=3.11,<3.14"
 dependencies = ["numpy", "pydantic", "rich", "typer"]
 
 [project.scripts]
-cadctx = "cad_context.cli:main"
+cadcon = "cad_context.cli:main"
 
 [project.optional-dependencies]
 cadquery  = ["cadquery"]
@@ -246,7 +246,7 @@ dev = ["pytest", "ruff"]
    amended); this plan updated to the accepted state.
 1. **Environment.** `pyproject.toml`, `uv sync --extra all`, lockfile,
    `.gitignore` (`out/`, `.tools/`, `.venv/`, caches), package skeleton
-   `src/cad_context/`; `config/artifacts.yaml` and `cadctx fetch` per the
+   `src/cad_context/`; `config/artifacts.yaml` and `cadcon fetch` per the
    OP-103 amendment, proven by fetching OpenSCAD on Windows; `README.md`
    opens the command reference that OP-106 mandates, growing with every
    phase.
@@ -263,7 +263,7 @@ dev = ["pytest", "ruff"]
    reference part. Record in `test.md`.
 5. **Spec fold.** Write `specifications/exchange-formats/spec.md` from the
    accepted contracts, and record the OP-106 durable rule (documented
-   `cadctx` CLI as the single human/agent interface, no skills, routing via
+   `cadcon` CLI as the single human/agent interface, no skills, routing via
    README/AGENTS docs) plus the OP-103 artifact-management contract in the
    appropriate specs.
 
@@ -271,7 +271,7 @@ dev = ["pytest", "ruff"]
 
 - OCCT-based wheels (OCP) are large downloads; first `uv sync` is slow.
 - OpenSCAD requires an external binary on Windows (OP-103 mitigations:
-  `cadctx fetch` provisions it from GitHub releases; graceful degrade when
+  `cadcon fetch` provisions it from GitHub releases; graceful degrade when
   absent; direct-URL config fallback for non-GitHub builds).
 - manifold3d/trimesh version coupling occasionally lags; pin via lockfile.
 - No dependency on Plans 2/3 — this packet unblocks both.
@@ -281,12 +281,12 @@ dev = ["pytest", "ruff"]
 (Artifact locations follow OP-108: `.cache/cad/`, not `out/`.)
 
 - `uv sync --extra all` succeeds from a clean checkout on Windows.
-- `cadctx fetch openscad` downloads, unpacks, and resolves a working
+- `cadcon fetch openscad` downloads, unpacks, and resolves a working
   OpenSCAD executable into `.tools/` from `config/artifacts.yaml` alone.
-- `cadctx demo` (or pytest equivalent) produces SVG, DXF, STEP, STL, and GLB
+- `cadcon demo` (or pytest equivalent) produces SVG, DXF, STEP, STL, and GLB
   artifacts at fixed paths under `.cache/cad/`, with per-command summaries in
   `.cache/results/` and a console that stays a few lines long.
-- Every shipped `cadctx` command is documented in `README.md` with a usage
+- Every shipped `cadcon` command is documented in `README.md` with a usage
   line and example, sufficient for a human or an agent to run it from the
   documentation alone (OP-106).
 - Cross-backend volume agreement on the reference part within 1%.

@@ -1,7 +1,7 @@
 /** The app's registry: every generator, with the knobs it exposes. */
 import type { APIRoute } from 'astro';
 
-import { listGenerators } from '../../server/cadctx.ts';
+import { listGenerators } from '../../server/cadcon.ts';
 import { effectiveExposure } from '../../server/exposure.ts';
 
 export const prerender = false;

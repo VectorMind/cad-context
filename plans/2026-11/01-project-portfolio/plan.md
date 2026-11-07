@@ -1,4 +1,4 @@
-# Project portfolio in cadctx web
+# Project portfolio in cadcon web
 
 Scope: show the active external project's existing portfolio, declared SVG/image
 evidence and generated models in the local preview app. Model migration belongs

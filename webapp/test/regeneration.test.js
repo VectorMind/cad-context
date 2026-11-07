@@ -111,7 +111,7 @@ test('a transport failure surfaces as an error and does not wedge the queue', as
     generator: 'plate2d',
     send: (request) => {
       failures.push(request);
-      return Promise.reject(new Error('cadctx exploded'));
+      return Promise.reject(new Error('cadcon exploded'));
     },
     onState: (next) => {
       state = next;
@@ -121,7 +121,7 @@ test('a transport failure surfaces as an error and does not wedge the queue', as
 
   scheduler.request({ width: 120 }, null);
   await tick();
-  assert.equal(state.error, 'cadctx exploded');
+  assert.equal(state.error, 'cadcon exploded');
   assert.equal(state.busy, false);
 
   scheduler.request({ width: 130 }, 'width');

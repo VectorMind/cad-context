@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { portfolioFile } from '../src/server/portfolio.ts';
 
 test('portfolio serves only declared files and confines resolved targets', async (t) => {
-  const temp = await mkdtemp(join(tmpdir(), 'cadctx-portfolio-'));
+  const temp = await mkdtemp(join(tmpdir(), 'cadcon-portfolio-'));
   t.after(() => rm(temp, { recursive: true, force: true }));
   const root = join(temp, 'project');
   await mkdir(root);

@@ -2,7 +2,7 @@
  * The bridge to the Python side.
  *
  * The web app owns no geometry logic. Everything it knows about shapes comes
- * from the `cadctx` CLI — the single documented interface of this repository
+ * from the `cadcon` CLI — the single documented interface of this repository
  * (`specifications/agent-interface/spec.md`) — invoked as a subprocess from
  * Astro SSR handlers. Nothing here parses a CAD file or reimplements a
  * parameter range; the CLI's `--json` payload is the only source.
@@ -12,7 +12,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export interface CadctxResult {
+export interface CadconResult {
   command: string;
   status: 'ok' | 'degraded' | 'error';
   summary: string;
@@ -82,32 +82,32 @@ export function repoRoot(): string {
 }
 
 /**
- * How the CLI is launched. `uv run cadctx` is the documented invocation;
- * `CADCTX_COMMAND` overrides it for an environment where `cadctx` is already
+ * How the CLI is launched. `uv run cadcon` is the documented invocation;
+ * `CADCON_COMMAND` overrides it for an environment where `cadcon` is already
  * on PATH (e.g. an activated venv), so the app never hardcodes a runner.
  */
 function launcher(): { file: string; prefix: string[] } {
-  const override = process.env.CADCTX_COMMAND;
+  const override = process.env.CADCON_COMMAND;
   if (override) {
     const parts = override.split(' ').filter(Boolean);
     return { file: parts[0]!, prefix: parts.slice(1) };
   }
-  return { file: 'uv', prefix: ['run', 'cadctx'] };
+  return { file: 'uv', prefix: ['run', 'cadcon'] };
 }
 
-export class CadctxError extends Error {
+export class CadconError extends Error {
   constructor(
     message: string,
-    readonly result?: CadctxResult,
+    readonly result?: CadconResult,
     readonly stderr?: string,
   ) {
     super(message);
-    this.name = 'CadctxError';
+    this.name = 'CadconError';
   }
 }
 
-/** Run one `cadctx --json` command and return its parsed result payload. */
-export function cadctx(args: string[], timeoutMs = 180_000): Promise<CadctxResult> {
+/** Run one `cadcon --json` command and return its parsed result payload. */
+export function cadcon(args: string[], timeoutMs = 180_000): Promise<CadconResult> {
   const { file, prefix } = launcher();
   const argv = [...prefix, '--json', ...args];
   return new Promise((resolvePromise, reject) => {
@@ -119,9 +119,9 @@ export function cadctx(args: string[], timeoutMs = 180_000): Promise<CadctxResul
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
       },
       (error, stdout, stderr) => {
-        let payload: CadctxResult | undefined;
+        let payload: CadconResult | undefined;
         try {
-          payload = JSON.parse(stdout) as CadctxResult;
+          payload = JSON.parse(stdout) as CadconResult;
         } catch {
           payload = undefined;
         }
@@ -129,7 +129,7 @@ export function cadctx(args: string[], timeoutMs = 180_000): Promise<CadctxResul
         // exiting non-zero, so an error carries the same structure as success.
         if (error && !payload) {
           reject(
-            new CadctxError(
+            new CadconError(
               `${file} ${argv.join(' ')} failed: ${error.message}`,
               undefined,
               stderr,
@@ -138,11 +138,11 @@ export function cadctx(args: string[], timeoutMs = 180_000): Promise<CadctxResul
           return;
         }
         if (!payload) {
-          reject(new CadctxError('cadctx produced no JSON payload', undefined, stderr));
+          reject(new CadconError('cadcon produced no JSON payload', undefined, stderr));
           return;
         }
         if (payload.status === 'error') {
-          reject(new CadctxError(payload.summary, payload, stderr));
+          reject(new CadconError(payload.summary, payload, stderr));
           return;
         }
         resolvePromise(payload);
@@ -170,11 +170,11 @@ function once<T>(key: string, produce: () => Promise<T>): Promise<T> {
 }
 
 export function listGenerators(): Promise<GeneratorInfo[]> {
-  return once('generators', async () => (await cadctx(['generators'])).data.generators);
+  return once('generators', async () => (await cadcon(['generators'])).data.generators);
 }
 
 export function generatorSchema(id: string): Promise<GeneratorSchema> {
-  return once(`schema:${id}`, async () => (await cadctx(['schema', id])).data as GeneratorSchema);
+  return once(`schema:${id}`, async () => (await cadcon(['schema', id])).data as GeneratorSchema);
 }
 
 export interface ProjectInfo {
@@ -186,7 +186,7 @@ export interface ProjectInfo {
 }
 
 export async function projectInfo(): Promise<ProjectInfo> {
-  return (await cadctx(['project', 'info'])).data as ProjectInfo;
+  return (await cadcon(['project', 'info'])).data as ProjectInfo;
 }
 
 /**
@@ -217,7 +217,7 @@ export interface GenerateOutcome {
   cliMs: number;
 }
 
-/** Generate one shape: `cadctx generate <id> -p k=v … -f <format>`. */
+/** Generate one shape: `cadcon generate <id> -p k=v … -f <format>`. */
 export async function generate(
   generatorId: string,
   params: Record<string, unknown>,
@@ -228,7 +228,7 @@ export async function generate(
   for (const format of formats) args.push('-f', format);
   return serialized(generatorId, async () => {
     const started = Date.now();
-    const result = await cadctx(args);
+    const result = await cadcon(args);
     return {
       status: result.status,
       files: result.data.files ?? {},

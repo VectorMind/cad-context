@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cadctx = "cad_context.cli:main"
+cadcon = "cad_context.cli:main"
 
 [project.optional-dependencies]
 # Compatibility names: the maintained geometry stack is installed by default.

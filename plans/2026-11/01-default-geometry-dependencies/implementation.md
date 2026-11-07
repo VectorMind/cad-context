@@ -10,9 +10,9 @@ zero available geometry backends. Validation uses an isolated environment at
 
 Ran plain `uv sync` with only `UV_PROJECT_ENVIRONMENT` redirected. It installed
 the geometry stack and refreshed `uv.lock` without upgrading package versions.
-Ran `uv run cadctx --no-project verify plate2d`, `uv run pytest`, and
+Ran `uv run cadcon --no-project verify plate2d`, `uv run pytest`, and
 `uv run ruff check .` successfully. A locked offline dry run with the legacy
-`default` extra required no changes. `cadctx info` now reports Shapely,
+`default` extra required no changes. `cadcon info` now reports Shapely,
 build123d, and trimesh available; optional OpenSCAD remains absent.
 
 No web source changed, so web checks were not required. Windows execution was

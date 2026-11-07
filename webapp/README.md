@@ -1,14 +1,16 @@
 # cad-context preview app
 
-Astro SSR preview-and-tweak surface for real `cadctx` artifacts. Start it only
+Astro SSR preview-and-tweak surface for real `cadcon` artifacts. Start it only
 through the repository CLI:
 
 ```powershell
-uv run cadctx web
-uv run cadctx --project "C:\models\my-part" web
+uv run cadcon web
+uv run cadcon --project "C:\models\my-part" web
 ```
 
-The server snapshots the active project and calls `cadctx --json` per request.
+The server snapshots the active project and calls `cadcon --json` per request.
+The default launcher is `uv run cadcon`; set `CADCON_COMMAND` to override it
+(for example, `cadcon` when it is already on PATH).
 It owns no geometry, parameter ranges, defaults, or output paths. Built-in
 editable names live in `config/exposure.json`; project exposure comes through
 the CLI from `project.yaml`.
@@ -30,5 +32,5 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-Do not start the dev server directly for repository workflows; `cadctx web`
+Do not start the dev server directly for repository workflows; `cadcon web`
 owns dependency checks, project propagation, URL reporting, and log routing.

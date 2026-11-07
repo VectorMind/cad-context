@@ -1,5 +1,5 @@
 /**
- * The regeneration bridge: browser → SSR handler → `cadctx` → fresh artifact.
+ * The regeneration bridge: browser → SSR handler → `cadcon` → fresh artifact.
  *
  * Request  `{ generator, params, changed?, seq }`
  * Response `{ seq, artifacts, timings }` — or `{ seq, error }`.
@@ -11,7 +11,7 @@
  */
 import type { APIRoute } from 'astro';
 
-import { generate } from '../../server/cadctx.ts';
+import { generate } from '../../server/cadcon.ts';
 import { checkParameters, exposedSchema } from '../../server/exposure.ts';
 
 export const prerender = false;

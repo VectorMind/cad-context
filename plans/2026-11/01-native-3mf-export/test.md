@@ -23,16 +23,16 @@ being used as acceptance evidence.
 | Command (native Windows) | Expected | Actual |
 | --- | --- | --- |
 | `uv sync --locked --extra default` | Restore locked Windows environment | Exit 0; installed locked build123d/lib3mf, unchanged dependency versions |
-| `uv run --extra default cadctx --no-project info` | Fresh runtime/tool result | Exit 0; Python 3.12.14; Shapely/build123d/trimesh ready; degraded solely for optional OpenSCAD |
-| `uv run --extra default cadctx --no-project generators` | Fresh registry | Exit 0; four built-ins with original format defaults |
-| `uv run --extra default cadctx --no-project paths` | Fresh workspace paths | Exit 0; repository cache paths, no selected project |
+| `uv run --extra default cadcon --no-project info` | Fresh runtime/tool result | Exit 0; Python 3.12.14; Shapely/build123d/trimesh ready; degraded solely for optional OpenSCAD |
+| `uv run --extra default cadcon --no-project generators` | Fresh registry | Exit 0; four built-ins with original format defaults |
+| `uv run --extra default cadcon --no-project paths` | Fresh workspace paths | Exit 0; repository cache paths, no selected project |
 | `uv run --extra default python .cache/scratch/mesher_smoke.py` | Confirm installed API, export and independently read asymmetric primitive | Exit 0; Windows platform and locked versions; one mesh/item, explicit mm, 8 vertices, 12 faces, volume 5083 mm³, bounds [0,0,0]–[13,17,23]; Mesher/lib3mf read one solid, Unit.MM |
-| `uv run --extra default cadctx --no-project generate bracket-build123d -f 3mf` | Actual documented CLI 3MF artifact | Exit 0, status ok; stable .cache/cad/bracket-build123d/bracket-build123d.3mf |
-| `uv run --extra default cadctx --no-project verify bracket-build123d -f 3mf` | Actual package and mesh proof | Exit 0, status ok, 16/16 checks; actual 3MF measurements, no STL dependency |
-| `uv run --extra default cadctx --no-project verify plate2d` | Preserve SVG/DXF proof | Exit 0; 7/7 checks |
-| `uv run --extra default cadctx --no-project verify airfoil` | Preserve SVG/DXF/JSON proof | Exit 0; 9/9 checks |
-| `uv run --extra default cadctx --no-project verify bracket-build123d` | Preserve STEP/STL/GLB proof | Exit 0; 8/8 checks |
-| `uv run --extra default cadctx --no-project verify wing-build123d` | Preserve loft STEP/STL/GLB proof | Exit 0; 8/8 checks; existing approximate-reference note |
+| `uv run --extra default cadcon --no-project generate bracket-build123d -f 3mf` | Actual documented CLI 3MF artifact | Exit 0, status ok; stable .cache/cad/bracket-build123d/bracket-build123d.3mf |
+| `uv run --extra default cadcon --no-project verify bracket-build123d -f 3mf` | Actual package and mesh proof | Exit 0, status ok, 16/16 checks; actual 3MF measurements, no STL dependency |
+| `uv run --extra default cadcon --no-project verify plate2d` | Preserve SVG/DXF proof | Exit 0; 7/7 checks |
+| `uv run --extra default cadcon --no-project verify airfoil` | Preserve SVG/DXF/JSON proof | Exit 0; 9/9 checks |
+| `uv run --extra default cadcon --no-project verify bracket-build123d` | Preserve STEP/STL/GLB proof | Exit 0; 8/8 checks |
+| `uv run --extra default cadcon --no-project verify wing-build123d` | Preserve loft STEP/STL/GLB proof | Exit 0; 8/8 checks; existing approximate-reference note |
 | `uv run --extra default pytest` | Entire suite passes | Exit 0; final 103 passed, 1 skipped in 8.20 s |
 | `uv run --extra default ruff check .` | No lint violations | Exit 0; All checks passed |
 | `git diff --check` | No whitespace errors | Exit 0 |

@@ -28,7 +28,7 @@ from . import workspace
 
 CONFIG_RELPATH = Path("config") / "artifacts.yaml"
 GITHUB_API = "https://api.github.com/repos/{repo}/releases/tags/{tag}"
-USER_AGENT = "cad-context/0.1 (+cadctx fetch)"
+USER_AGENT = "cad-context/0.1 (+cadcon fetch)"
 DOWNLOAD_TIMEOUT = 300
 
 
@@ -247,7 +247,7 @@ def fetch(name: str, *, force: bool = False, path: Path | None = None) -> FetchR
 
 
 def status(path: Path | None = None) -> list[dict[str, Any]]:
-    """One row per declared artifact, for ``cadctx info`` / ``cadctx fetch --list``."""
+    """One row per declared artifact, for ``cadcon info`` / ``cadcon fetch --list``."""
     rows = []
     for name, spec in declared(path).items():
         executable = resolve_executable(name, path)

@@ -17,7 +17,7 @@ implementation (`hole_diameter`, not `d1`).
 
 ## Transport Form
 
-`cadctx schema <generator>` and `cad_context.api.schema(...)` publish the
+`cadcon schema <generator>` and `cad_context.api.schema(...)` publish the
 declaration as JSON:
 
 ```json
