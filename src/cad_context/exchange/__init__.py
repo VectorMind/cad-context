@@ -121,7 +121,12 @@ def export(
                 # GLB is derived from a mesh. When the caller did not ask for
                 # the STL itself, tessellate into a temporary file so only the
                 # requested artifact lands in the workspace.
-                if "stl" in files:
+                if export3d.colored_parts(build_result):
+                    write_atomic(
+                        path,
+                        lambda target: export3d.write_colored_glb(build_result, target),
+                    )
+                elif "stl" in files:
                     write_atomic(
                         path,
                         lambda target: export3d.write_glb(files["stl"], target),

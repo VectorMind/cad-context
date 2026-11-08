@@ -188,9 +188,24 @@ export interface ProjectInfo {
   portfolio?: { entry: string; files: { path: string; available: boolean }[] } | null;
 }
 
+export interface ProjectPresentation {
+  title: string;
+  description: string;
+  asset_count: number;
+  stages: {
+    id: string;
+    title: string;
+    description: string;
+    state: 'reference' | 'history' | 'approved' | 'review';
+    assets: { file: string; title: string; caption: string; wide: boolean;
+      state?: 'reference' | 'history' | 'approved' | 'review' | null }[];
+  }[];
+}
+
 export interface PublishedProject {
   id: string;
   publication_root: string;
+  presentation?: ProjectPresentation | null;
   published: null | { name: string; description: string; source_identity: string;
     models: { id: string; file: string; generator: string }[];
     references?: { file: string }[] };

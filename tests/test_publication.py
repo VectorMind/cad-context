@@ -9,6 +9,36 @@ from cad_context import project_catalog as catalog
 from cad_context import projects, publication, workspace
 
 
+def _visual_definition(root, output):
+    folder = output / "evidence"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "trace.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10">'
+        '<path d="M0 0L20 10"/></svg>'
+    )
+    definition = {
+        "title": "From sketch to model",
+        "stages": [
+            {
+                "id": "trace",
+                "title": "Source trace",
+                "state": "history",
+                "assets": [
+                    {
+                        "path": "evidence/trace.svg",
+                        "location": "cache",
+                        "title": "The reviewed line drawing",
+                        "caption": "Original outline before rounding.",
+                        "wide": True,
+                    }
+                ],
+            }
+        ],
+    }
+    (root / "presentation.yaml").write_text(yaml.safe_dump(definition))
+    return definition
+
+
 @pytest.fixture
 def model(tmp_path, cache):
     sources = tmp_path / "sources"
@@ -82,6 +112,94 @@ def test_projects_generate_only_inside_redirected_cache(model, cache):
     assert not (root / "cad").exists()
 
 
+def test_visual_publication_preserves_geometry_and_survives_source_cache_loss(model):
+    import shutil
+    import zipfile
+
+    from cad_context import presentation
+
+    root, drive, output = model
+    publication.publish("puzzle")
+    publication.release("puzzle", "2026-11-08", freeze=True)
+    geometry = (drive / "web/latest/manifest.json").read_bytes()
+    release = (drive / "3d-print/2026-11-08/release.json").read_bytes()
+    source_identity = publication.source_identity(root)
+    generation_identity = publication.generation_identity(root)
+    _visual_definition(root, output)
+    assert publication.source_identity(root) == source_identity
+    assert publication.generation_identity(root) == generation_identity
+    result = presentation.present("puzzle")
+    assert result["asset_count"] == 1
+    assert (drive / "web/gallery/latest/trace/trace.svg").is_file()
+    assert (drive / "web/latest/manifest.json").read_bytes() == geometry
+    assert (drive / "3d-print/2026-11-08/release.json").read_bytes() == release
+    assert publication._verified(root)["verified"]
+    (drive / "web/gallery/latest").chmod(0o555)
+    presentation.present("puzzle")
+    assert not (drive / "web/gallery/.latest-previous").exists()
+    with zipfile.ZipFile(drive / "reference/source.zip") as archive:
+        assert "presentation.yaml" in archive.namelist()
+    assert (
+        json.loads((drive / "reference/source.json").read_text())["source_identity"]
+        == source_identity
+    )
+    shutil.rmtree(output)
+    shutil.rmtree(root)
+    assert (
+        publication.view("puzzle")["presentation"]["stages"][0]["assets"][0]["title"]
+        == "The reviewed line drawing"
+    )
+
+
+def test_missing_visual_refuses_replacement_of_shared_gallery(model):
+    from cad_context import presentation
+
+    root, drive, output = model
+    definition = _visual_definition(root, output)
+    presentation.present("puzzle")
+    before = (drive / "web/gallery/latest/manifest.json").read_bytes()
+    definition["stages"][0]["assets"][0]["path"] = "evidence/missing.svg"
+    (root / "presentation.yaml").write_text(yaml.safe_dump(definition))
+    with pytest.raises(projects.ProjectError, match="missing visual asset"):
+        presentation.present("puzzle")
+    assert (drive / "web/gallery/latest/manifest.json").read_bytes() == before
+
+
+@pytest.mark.parametrize("path", ["../secret.png", "builder.py", "c:/secret.svg"])
+def test_visual_asset_paths_are_confined_and_images_only(path):
+    from pydantic import ValidationError
+
+    from cad_context.presentation import Visual
+
+    with pytest.raises(ValidationError):
+        Visual(path=path, title="Invalid asset")
+
+
+def test_visual_publication_retries_a_transient_directory_lock(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from cad_context import presentation
+
+    source = tmp_path / "stage"
+    source.mkdir()
+    (source / "image.svg").write_text("image")
+    target = tmp_path / "latest"
+    original = Path.rename
+    attempts = []
+
+    def locked_once(path, destination):
+        attempts.append(path)
+        if len(attempts) == 1:
+            raise PermissionError("Drive is indexing a new folder")
+        return original(path, destination)
+
+    monkeypatch.setattr(Path, "rename", locked_once)
+    monkeypatch.setattr(presentation.time, "sleep", lambda _: None)
+    presentation._rename(source, target)
+    assert (target / "image.svg").read_text() == "image"
+    assert len(attempts) == 2
+
+
 def test_publish_survives_cache_loss_and_restore_preserves_source(model, tmp_path):
     root, drive, output = model
     publication.publish("puzzle")
@@ -137,28 +255,32 @@ def test_release_provenance_is_compared_with_published_source(model):
     root, drive, _ = model
     publication.publish("puzzle")
     publication.release("puzzle", "2026-11-08")
-    assert publication.view("puzzle")["releases"][0][
-        "published_source_relation"
-    ] == "same-source"
+    assert (
+        publication.view("puzzle")["releases"][0]["published_source_relation"]
+        == "same-source"
+    )
     manifest_path = drive / "web/latest/manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["source_identity"] = "newer-source"
     manifest_path.write_text(json.dumps(manifest))
-    assert publication.view("puzzle")["releases"][0][
-        "published_source_relation"
-    ] == "different-source"
+    assert (
+        publication.view("puzzle")["releases"][0]["published_source_relation"]
+        == "different-source"
+    )
     legacy = drive / "3d-print/2026-10-25"
     legacy.mkdir()
     (legacy / "release.json").write_text(
         json.dumps({"status": "legacy-frozen", "files": {"old.3mf": "old-hash"}})
     )
-    assert publication.view("puzzle")["releases"][1][
-        "published_source_relation"
-    ] == "legacy-untracked"
+    assert (
+        publication.view("puzzle")["releases"][1]["published_source_relation"]
+        == "legacy-untracked"
+    )
     manifest_path.unlink()
-    assert publication.view("puzzle")["releases"][0][
-        "published_source_relation"
-    ] == "no-published-source"
+    assert (
+        publication.view("puzzle")["releases"][0]["published_source_relation"]
+        == "no-published-source"
+    )
 
 
 def test_corrupt_recovery_snapshot_is_rejected_without_destination(model, tmp_path):

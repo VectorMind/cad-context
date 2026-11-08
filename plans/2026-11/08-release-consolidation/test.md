@@ -1,0 +1,3 @@
+# Validation
+
+Required startup commands passed (optional OpenSCAD unavailable). This is a file/document consolidation without geometry or application-code changes; no geometry or application tests rerun. All nine current 3MF SHA256 and ZIP CRC checks passed. All nine user G-code hashes preserved, including the PETG bear file moved from the older board folder. Both duplicate folders removed. project view succeeded; current source matches published geometry. Receipts: .cache/results/release-consolidation.json and shared reference/release-consolidation.json. Source/workbench recovery archives refreshed with checksums. git diff --check passed.

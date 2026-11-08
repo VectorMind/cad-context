@@ -76,6 +76,10 @@ An active project's working artifacts use fixed paths under
 `.cache/projects/<project-id>/cad/<generator>/`, including measurements JSON.
 Only explicit `cadcon project publish` and user-dated `project release` copy
 consumer assets into shared storage; source/reference snapshots support recovery.
+Create a new dated or labelled print version only when the user explicitly requests
+it or confirms the proposed version. A model revision or generation request alone
+does not authorize a new release folder. Preserve user-added G-code and slicer files
+when consolidating releases; never silently replace them with generated output.
 See specifications/project-publication/spec.md. Operational results remain local. Never write generated files
 into `src/`, `plans/`, `specifications/`, or the repository root. Never commit
 `.cache/`, `.tools/`, or generated project geometry.

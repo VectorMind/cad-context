@@ -372,6 +372,11 @@ Geometry proof is measurement, not appearance: STEP is imported again, meshes
 are checked for watertightness/volume/bounds, and 2D formats are re-read for
 structure and units.
 
+The GLB exporter preserves explicitly assigned native assembly colours as
+separate solid PBR meshes, including parent placement. The web viewer keeps
+those authored materials; ordinary uncoloured CAD previews keep the default
+surface. Preview colours do not define slicer filament profiles.
+
 ## Project working files, publication and recovery
 
 All generated project geometry now lives under `.cache/projects/<id>/cad/`. Keep durable model code, inputs, specs and original references outside cache. Project source and Drive publication roots are separately catalogued; bind this machine with `cadcon project root model-sources <parent>` and `cadcon project root shared-models <drive-projects-parent>`.
@@ -381,6 +386,7 @@ uv run cadcon project list
 uv run cadcon --project animal-puzzle project rebuild
 uv run cadcon project publish animal-puzzle
 uv run cadcon project snapshot animal-puzzle
+uv run cadcon project present animal-puzzle
 uv run cadcon project restore animal-puzzle <new-source-folder>
 # Only on explicit user request:
 uv run cadcon project release animal-puzzle YYYY-MM-DD
@@ -394,3 +400,7 @@ Open `/projects` for the project list, `/projects/animal-puzzle` for published m
 To resume after a proof-script-only fix without redoing unchanged exports, use `cadcon --project animal-puzzle project rebuild --reuse-exports`. The saved verified source/output checkpoint must still match. A clean-cache rebuild always regenerates everything. For published browsing without local project source, start `cadcon --no-project web`.
 
 Dated print downloads can be historical even when the viewer shows the latest model. `cadcon project view <id>` reports each release's source relationship to the published viewer snapshot; the project page warns about untracked historical exports or different source versions. New releases record the source identity and each file's generator. A filename revision, date or passing mesh check does not establish current appearance approval. Review the active generator mapping and approval record before selecting files for a release.
+
+Create a new dated or labelled print version only when the user requests or confirms it. Model generation does not imply a new release. User-authorized consolidation may update an existing date; preserve all user-added G-code/slicer files and record their provenance separately from generated geometry.
+
+For visual development pages, define `presentation.yaml` in the model source and run `cadcon project present <id>`. It publishes captioned image stages from explicitly declared source/cache paths to `web/gallery/latest`, preserving all current GLB/3MF geometry and release provenance. The definition is included in recovery snapshots and their conflict checks; presentation edits do not invalidate geometry verification. Cache images must be recreated with `project rebuild` if missing. Each stage has an `id`, `title`, `description`, `state` (`reference`, `history`, `approved` or `review`) and `assets` with `path`, `location` (`source` or `cache`), `title`, `caption` and optional `wide`/`state`.

@@ -20,6 +20,15 @@ GLB is derived from STL through trimesh. STEP is the lossless B-rep interchange
 format. A missing external OpenSCAD binary degrades to SCAD-only output and
 records every skipped format; it does not crash generation.
 
+For explicitly coloured native build123d assemblies, the exporter tessellates
+leaf parts separately, preserving their global assembly locations and assigning
+named opaque matte PBR materials. Native palette colours are interpreted as
+sRGB and converted to linear glTF base-colour factors. Uncoloured shapes retain
+the existing single-mesh STL bridge. Colour is presentation data and never
+implies filament/material settings in print packages. The viewer preserves
+authored GLB materials and uses its default lit surface only when no materials
+were authored; missing normals and wireframe must not erase colours.
+
 ## Tessellation
 
 build123d meshes use 0.01 mm linear and 0.1 rad angular tolerance. OpenSCAD

@@ -1,0 +1,88 @@
+---
+import type { ProjectPresentation } from '../server/cadcon.ts';
+
+interface Props { presentation: ProjectPresentation; project: string; }
+const { presentation, project } = Astro.props;
+const labels = {
+  reference: 'Concept reference',
+  history: 'Earlier iteration',
+  approved: 'Appearance approved',
+  review: 'For review',
+};
+const imageUrl = (file: string) => `/projects/${encodeURIComponent(project)}/files/web/gallery/latest/${file.split('/').map(encodeURIComponent).join('/')}`;
+type Visual = ProjectPresentation['stages'][number]['assets'][number];
+function visualGroups(assets: Visual[]) {
+  const groups: {wide: boolean; assets: Visual[]}[] = [];
+  for (const asset of assets) {
+    const last = groups.at(-1);
+    if (last && last.wide === asset.wide) last.assets.push(asset);
+    else groups.push({wide: asset.wide, assets: [asset]});
+  }
+  return groups;
+}
+---
+<section class="story" aria-labelledby="design-stages">
+  <header class="story-header">
+    <p class="eyebrow">Visual development · {presentation.stages.length} stages · {presentation.asset_count} images</p>
+    <h2 id="design-stages">{presentation.title}</h2>
+    <p class="intro">{presentation.description}</p>
+  </header>
+  <nav class="stage-nav" aria-label="Design stages">
+    {presentation.stages.map((stage, index) => <a href={`#stage-${stage.id}`}><span>{String(index + 1).padStart(2, '0')}</span>{stage.title}</a>)}
+  </nav>
+  <div class="stages">
+    {presentation.stages.map((stage, index) => <section class="stage" id={`stage-${stage.id}`} aria-labelledby={`stage-heading-${stage.id}`}>
+      <header class="stage-header">
+        <span class="stage-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+        <div><span class={`badge ${stage.state}`}>{labels[stage.state]}</span><h3 id={`stage-heading-${stage.id}`}>{stage.title}</h3><p>{stage.description}</p></div>
+      </header>
+      {visualGroups(stage.assets).map(group => <div class:list={['visual-grid', {comparisons: group.wide}]}>
+        {group.assets.map(asset => <figure class="visual">
+          <a class="image-link" href={imageUrl(asset.file)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${asset.title} at full size`}>
+            <img src={imageUrl(asset.file)} alt={asset.title} loading="lazy" decoding="async" />
+            <span class="expand">Open full size ↗</span>
+          </a>
+          <figcaption>
+            {asset.state && asset.state !== stage.state && <span class={`badge ${asset.state}`}>{labels[asset.state]}</span>}
+            <h4>{asset.title}</h4><p>{asset.caption}</p>
+          </figcaption>
+        </figure>)}
+      </div>)}
+    </section>)}
+  </div>
+</section>
+<style>
+  .story { margin-top: 64px; }
+  .story-header { max-width: 880px; margin-bottom: 24px; }
+  .eyebrow { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: #a8c7b9; }
+  h2 { font-size: clamp(1.65rem, 3vw, 2.3rem); margin: 10px 0 12px; scroll-margin-top: 24px; }
+  .intro, .stage-header p { color: #b9c5d1; line-height: 1.65; }
+  .stage-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 40px; }
+  .stage-nav a { display: inline-flex; gap: 10px; align-items: center; padding: 9px 13px; border: 1px solid #445263; border-radius: 8px; text-decoration: none; font-size: .88rem; }
+  .stage-nav a:hover { border-color: #9ac7b1; background: #1d2c31; }
+  .stage-nav span { color: #9ac7b1; font-variant-numeric: tabular-nums; }
+  .stage { margin: 0 0 48px; padding-top: 28px; border-top: 1px solid #394655; scroll-margin-top: 24px; }
+  .stage-header { display: flex; gap: 20px; align-items: start; max-width: 980px; margin-bottom: 24px; }
+  .stage-number { font-size: 2.5rem; line-height: 1.1; font-weight: 650; color: #7da68f; font-variant-numeric: tabular-nums; }
+  h3 { margin: 10px 0 8px; font-size: clamp(1.3rem, 2vw, 1.65rem); }
+  .stage-header p { margin: 0; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 5px; font-size: .7rem; font-weight: 650; letter-spacing: .03em; background: #29394a; color: #c6d8ed; }
+  .approved { background: #203c32; color: #b5e6c9; }
+  .review { background: #443822; color: #efcf94; }
+  .history { background: #303747; color: #c2ccdf; }
+  .reference { background: #303449; color: #d3c9ec; }
+  .visual-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .visual-grid + .visual-grid { margin-top: 16px; }
+  .comparisons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .visual { margin: 0; min-width: 0; border: 1px solid #435163; border-radius: 12px; overflow: hidden; background: #17212e; }
+  .image-link { display: block; position: relative; background: #fafaf7; }
+  img { display: block; width: 100%; height: 230px; object-fit: contain; }
+  .comparisons img { height: 300px; }
+  .expand { display: block; padding: 8px 12px; text-align: right; font-size: .75rem; color: #3b514b; border-top: 1px solid #e2e6df; background: #f0f3ed; }
+  figcaption { padding: 16px 18px 18px; }
+  h4 { margin: 4px 0 8px; font-size: 1rem; }
+  figcaption p { margin: 0; line-height: 1.6; color: #b9c5d1; font-size: .9rem; }
+  a:focus-visible { outline: 3px solid #b8dec9; outline-offset: 3px; }
+  @media (max-width: 1100px) { .visual-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 650px) { .visual-grid { grid-template-columns: minmax(0, 1fr); } img, .comparisons img { height: auto; max-height: 360px; } .stage-header { gap: 12px; } .stage-number { font-size: 2rem; } .stage-nav a { padding: 8px 10px; } }
+</style>

@@ -114,6 +114,60 @@ def write_glb(stl_path: Path, path: Path) -> Path:
     return path
 
 
+def colored_parts(build_result: Any) -> list[tuple[Any, Any]]:
+    """Read optional native assembly colours only inside the exporter boundary."""
+    if build_result.backend != "build123d":
+        return []
+    parts = []
+
+    def visit(shape, inherited=None):
+        color = getattr(shape, "color", None) or inherited
+        children = getattr(shape, "children", ())
+        if children:
+            for child in children:
+                visit(child, color)
+        else:
+            parts.append((shape.located(shape.global_location), color))
+
+    visit(build_result.native)
+    return parts if any(color is not None for _, color in parts) else []
+
+
+def write_colored_glb(build_result: Any, path: Path) -> Path:
+    """Tessellate native parts separately so GLB retains solid PBR colours."""
+    import tempfile
+    from dataclasses import replace
+
+    import numpy as np
+    import trimesh
+
+    scene = trimesh.Scene()
+    with tempfile.TemporaryDirectory(prefix="cadcon-colors-") as temporary:
+        for index, (shape, color) in enumerate(colored_parts(build_result)):
+            source = Path(temporary) / f"part-{index}.stl"
+            write_stl(replace(build_result, native=shape), source)
+            mesh = trimesh.load_mesh(str(source))
+            rgba = tuple(color) if color is not None else (0.72, 0.77, 0.82, 1)
+            # Native preview palette is sRGB; glTF base colour factors are linear.
+            linear = [
+                c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                for c in rgba[:3]
+            ]
+            factor = np.rint(np.array([*linear, rgba[3]]) * 255).astype(np.uint8)
+            name = getattr(shape, "label", "") or f"part-{index}"
+            material = trimesh.visual.material.PBRMaterial(
+                name=f"cadcon:{name}",
+                baseColorFactor=factor,
+                metallicFactor=0.0,
+                roughnessFactor=0.9,
+                alphaMode="OPAQUE",
+            )
+            mesh.visual = trimesh.visual.TextureVisuals(material=material)
+            scene.add_geometry(mesh, geom_name=name, node_name=name)
+    scene.export(str(path), file_type="glb")
+    return path
+
+
 def mesh_metrics(mesh_path: Path) -> dict[str, Any]:
     """Load a mesh back and measure it — the proof that an export is real."""
     import trimesh

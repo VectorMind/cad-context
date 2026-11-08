@@ -1,0 +1,13 @@
+# Implementation
+
+Progress: [x] asset inventory [x] publication/schema [x] staged page [x] content [x] validation [x] shared publication/recovery.
+
+Added project present command and project-owned presentation.yaml schema for captioned image stages. Gallery publication preflights all dependencies, confines source/cache roots and file types, stages copies atomically with hash checks and Windows read-only cleanup, and refreshes the source recovery archive. Project view/file routes read published gallery metadata and allowlisted assets without executing local model code. Existing geometry and print manifests remain untouched.
+
+The root presentation.yaml is excluded from model and generator identity while retained in source_files/full snapshot identity. Existing projects without this new file retain their exact previous build identity. This prevents a gallery edit from forcing model regeneration or changing release source alignment. Geometry inputs/code still participate in identity. No geometry implementation changed.
+
+Authored nine stages and 37 visuals: concept, bear trace corrections/rounding, elephant source-to-rounded CAD, rabbit trace and detailed rounding/mouth checks, turtle shell/rounding, continuous-neck correction and board planning/current dimensions. Historical pointed CAD and old board-size estimates are explicitly labelled earlier versions. Current animal approvals and the board review status remain distinct. Layout has section links, responsive two/single-column images, wide review sheets, lazy decoding/loading, captions, image alt labels and full-size links. Published page now has a bounded responsive content width instead of edge-to-edge panels.
+
+Drive temporarily locked newly copied nested directories during atomic rename. Clearing read-only directory attributes plus bounded backoff allowed publication to finish; tested both read-only replacement and one simulated transient lock. Gallery publication does not modify web/latest model assets, print directories or active geometry proof. Actual HTTP readback confirmed source alignment and frozen print hashes unchanged.
+
+Browser access host was unavailable, so no interactive browser screenshot or viewport inspection was possible. Existing user-owned cadcon server was already running at port 4321 and left running. Verified actual SSR HTML, stage anchors/full-size links, every published image's MIME/structure/hash, embedded SVG references and confinement; rendered a contact sheet of all 37 published originals with installed sharp and visually inspected it. Web check/tests/build passed. Source and workbench recovery bundles refreshed after final documentation.

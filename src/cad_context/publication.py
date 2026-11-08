@@ -57,6 +57,7 @@ def source_identity(root: Path) -> str:
         p.relative_to(root).as_posix(): digest(p)
         for p in source_files(root)
         if p.suffix.lower() != ".md"
+        and p.relative_to(root).as_posix() != "presentation.yaml"
     }
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
@@ -125,7 +126,11 @@ def snapshot(project_id: str) -> dict:
         "project_id": project_id,
         "source_identity": hashlib.sha256(
             json.dumps(
-                {n: h for n, h in hashes.items() if Path(n).suffix.lower() != ".md"},
+                {
+                    n: h
+                    for n, h in hashes.items()
+                    if Path(n).suffix.lower() != ".md" and n != "presentation.yaml"
+                },
                 sort_keys=True,
             ).encode()
         ).hexdigest(),
@@ -241,7 +246,9 @@ def generation_identity(root: Path) -> str:
     files = {
         p.relative_to(root).as_posix(): digest(p)
         for p in source_files(root)
-        if p.relative_to(root).parts[0] != "verification" and p.suffix.lower() != ".md"
+        if p.relative_to(root).parts[0] != "verification"
+        and p.suffix.lower() != ".md"
+        and p.relative_to(root).as_posix() != "presentation.yaml"
     }
     return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
 
@@ -538,6 +545,10 @@ def view(project_id: str) -> dict:
     root = location(project_id)
     path = root / "web/latest/manifest.json"
     published = json.loads(path.read_text()) if path.exists() else None
+    gallery = root / "web/gallery/latest/manifest.json"
+    presentation = (
+        json.loads(gallery.read_text(encoding="utf-8")) if gallery.exists() else None
+    )
     releases = []
     for p in sorted((root / "3d-print").glob("*/release.json"), reverse=True):
         release_data = json.loads(p.read_text())
@@ -562,5 +573,6 @@ def view(project_id: str) -> dict:
         "id": project_id,
         "publication_root": str(root),
         "published": published,
+        "presentation": presentation,
         "releases": releases,
     }

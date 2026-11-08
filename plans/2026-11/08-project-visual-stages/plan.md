@@ -1,0 +1,7 @@
+# Project visual stages
+
+User asked for a broad visual project history including source images, SVG lines, rounding, meaningful intermediate views and CAD images, with later pruning at their discretion. Enrich the published project page with staged image groups and useful captions; preserve current model and print-package provenance.
+
+Deliver project-owned presentation.yaml, an independently published allowlisted gallery, stage navigation/full-size images, explicit historical/approved/review labels, recovery source inclusion, CLI present command and README contract. Keep content outside web code. Presentation metadata must not invalidate geometry verification, change existing model bytes, or make current print releases appear stale. Gallery remains readable without source/cache. No AI imagery is needed: reuse actual project references and evidence. Do not infer physical photographs or manufacturing approval from CAD renders.
+
+OP-001 resolved: broad initial curation, user may request removing images later. OP-002 resolved: presentation.yaml is versioned/recoverable source, excluded only from geometry/generation identity, still included in full snapshot conflict identity. OP-003 resolved: independent web/gallery/latest publication so normal GLB publication does not wipe visual history. Exit: content paths validated, all images resolve, no cache dependency for shared viewing, responsive readable gallery, preserved model/release hashes and checks passing.

@@ -715,6 +715,20 @@ def project_publish(ctx: typer.Context, project_id: str) -> None:
     )
 
 
+@project_app.command("present")
+def project_present(ctx: typer.Context, project_id: str) -> None:
+    """Publish visual stages from presentation.yaml without changing geometry."""
+    from . import presentation
+
+    _run(
+        ctx,
+        "project-present",
+        lambda: _publication_result(
+            "project-present", presentation.present(project_id)
+        ),
+    )
+
+
 @project_app.command("release")
 def project_release(
     ctx: typer.Context,

@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { applySurface, applyWireframe } from './modelMaterials.ts';
 
 export interface ModelViewProps {
   url: string | null;
@@ -44,15 +45,6 @@ function disposeObject(object: THREE.Object3D): void {
   });
 }
 
-function surfaceMaterial(flatShading: boolean): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: '#b7c4d1',
-    metalness: 0.25,
-    roughness: 0.42,
-    flatShading,
-  });
-}
-
 /**
  * Give every mesh a lit surface.
  *
@@ -63,25 +55,18 @@ function surfaceMaterial(flatShading: boolean): THREE.MeshStandardMaterial {
  * derives the true per-face normal in the shader, which is also the right look
  * for a faceted CAD part. A file that does carry normals keeps them.
  */
-function applySurface(object: THREE.Object3D): void {
-  object.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const hasNormals = Boolean(mesh.geometry?.getAttribute('normal'));
-    mesh.material = surfaceMaterial(!hasNormals);
-  });
-}
-
 async function loadModel(url: string, format: string): Promise<Loaded> {
   let object: THREE.Object3D;
+  let authoredMaterials = false;
   if (format === 'stl') {
     const geometry = await new STLLoader().loadAsync(url);
     object = new THREE.Mesh(geometry);
   } else {
     const gltf = await new GLTFLoader().loadAsync(url);
     object = gltf.scene;
+    authoredMaterials = Boolean(gltf.parser.json.materials?.length);
   }
-  applySurface(object);
+  applySurface(object, authoredMaterials);
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
@@ -169,12 +154,7 @@ export default function ModelView({ url, format, wireframe, showGrid, fitToken }
 
   useEffect(() => {
     if (!loaded) return;
-    loaded.object.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      const material = mesh.material as THREE.MeshStandardMaterial;
-      material.wireframe = wireframe;
-    });
+    applyWireframe(loaded.object, wireframe);
   }, [loaded, wireframe]);
 
   useEffect(() => {
