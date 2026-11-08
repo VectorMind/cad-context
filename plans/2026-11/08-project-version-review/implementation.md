@@ -1,0 +1,13 @@
+# Implementation
+
+Progress: [x] source/history review [x] artifact audit [x] root cause [x] provenance control [x] shared metadata/report [x] tests and recovery refresh.
+
+Confirmed all current source/rebuild/published viewer/recovery source identities agree, every cached verified artifact remains byte-identical to its proof ledger, all four published GLBs match current cache, and approval-pinned input/generator files remain unchanged. Eight current piece packages have passing recorded measurements and verified matching hashes. Independently reparsed all four legacy packages: valid meshes, different geometry, no source/generator provenance and no current package byte matches.
+
+Actual bear rear 3MF midplane sections show the r008 boundary still reaches all three old points (<0.000003 mm distance), whereas the current rounded export cuts them back by approximately 2.165/1.115/0.729 mm. The setting is a 1.5 mm local contour radius; these distances are point setbacks, not fitted radii. All geometry code/parameters remained unchanged.
+
+Root cause: migration correctly kept generated work local and froze historical print packages, but provided no current print release; later duplicate cleanup ranked historical filename numbers and incorrectly described r008 as latest. Approval/source rank was not checked. Integrity/topology tests and live file counts did not detect semantic version mismatch. Revision numbering mixes global milestones and unnumbered rounding variants; turtle-r012 filename actually contains r014 data. Historical handoff headings also contain obsolete current/pending statements beneath later overrides.
+
+Added new-release per-file generator provenance; project view now derives source relation relative to published viewer source without requiring local generators/cache. UI warns about untracked historical exports and different-source releases, and describes same-source alignment without claiming approval/fit. No automatic release, approval or geometry update. Tests cover all four provenance relations. User's server remains stopped.
+
+Saved MODEL-VERSIONS.md and the model review packet outside cache; published full MD/JSON inventory and actual-slice SVG under Drive reference/. Release manifest/README explicitly label all four remaining dated packages superseded. Refreshed model-source and workbench-source recovery bundles after docs/code changes, with checksums and final inventory. No package bytes, geometry parameters or dates changed. Comparison SVG rasterized with installed sharp and visually inspected; all three formerly pointed sites are visibly softened in the actual rounded 3MF slice.

@@ -34,7 +34,7 @@ const groups = [
 
     {error && <p class="error">cadcon failed: {error}</p>}
 
-    {project?.active && <a class="card featured" href="/project"><h2>{project.name}</h2><p>Open project drawings, evidence and models.</p></a>}
+    <a class="card featured" href="/projects"><h2>Projects</h2><p>Published models, dated print releases and local review tools.</p></a>
 
     <a class="card featured" href="/airfoil">
       <h2>Airfoil + wing loft</h2>
@@ -55,7 +55,7 @@ const groups = [
               return (
                 <a
                   class:list={['card', { unavailable: !generator.available }]}
-                  href={generator.origin === 'project' && generator.kind === '3d' && !generator.formats.some((format) => ['glb', 'stl'].includes(format)) ? '/project' : `/viewer/${generator.id}`}
+                  href={generator.origin === 'project' && generator.kind === '3d' && !generator.formats.some((format) => ['glb', 'stl'].includes(format)) ? `/projects/${project?.id ?? ''}/workbench` : `/viewer/${generator.id}`}
                 >
                   <h2>{generator.title}</h2>
                   <p class="meta">

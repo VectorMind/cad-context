@@ -72,14 +72,16 @@ Operational output stays under `.cache/`:
 | `.cache/scratch/`, `.cache/downloads/` | experiments and downloads |
 | `.tools/` | provisioned external binaries |
 
-An active project's generator artifacts instead use fixed paths under
-`<project>/cad/<generator>/`, including `<generator>.measurements.json`.
-Operational results remain in the repository cache. Never write generated files
+An active project's working artifacts use fixed paths under
+`.cache/projects/<project-id>/cad/<generator>/`, including measurements JSON.
+Only explicit `cadcon project publish` and user-dated `project release` copy
+consumer assets into shared storage; source/reference snapshots support recovery.
+See specifications/project-publication/spec.md. Operational results remain local. Never write generated files
 into `src/`, `plans/`, `specifications/`, or the repository root. Never commit
 `.cache/`, `.tools/`, or generated project geometry.
 
 Use `CAD_CONTEXT_CACHE` to redirect tests. Tests using a project fixture copy it
-to `tmp_path`; redirecting the cache does not redirect project output.
+to `tmp_path`; redirecting the cache also redirects project working output.
 
 Paths are stable and atomic. Do not introduce timestamps, hashes, or counters.
 Use `--out-dir` only when several variants genuinely coexist. Keep the console

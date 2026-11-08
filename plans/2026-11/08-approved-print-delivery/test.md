@@ -1,0 +1,7 @@
+# Validation
+
+`uv run pytest --basetemp .cache/scratch/approved-print-release-final-tests`: 144 passed, 2 skipped in 12.09 seconds. Includes a real read-only-directory republish regression. `uv run ruff check .`: passed. Touched external turtle generator/proof/render modules also pass Ruff; existing misplaced workspace imports in touched proof files were corrected. Log: .cache/reports/approved-print-release-pytest.log.
+
+Full `cadcon --project animal-puzzle project rebuild` passed: eight print packages verified, two trace exports, all assembly/reference/repeatability/corner/rim/engraving/neck proofs. All 13 native model volumes and bounds remained exactly unchanged; all four regenerated viewer mesh signatures match approved published meshes. Receipt: .cache/results/approved-print-geometry-check.json. No geometry or dimensions changed.
+
+Actual Drive republish passed. `cadcon project release animal-puzzle 2026-11-08 --freeze` and `cadcon project freeze animal-puzzle 2026-11-08` passed. Independent delivery check asserts exactly eight named pieces, two per animal, all ZIP CRCs valid, all SHA256 values equal verified cache outputs and release manifest, and exact generator mapping/source identity alignment with web/latest. Receipt: .cache/results/approved-print-release-validation.json and shared reference/release-2026-11-08-validation.json. Source/workbench recovery bundles refreshed and archive/per-member hashes verified. No server started. No web implementation change; previous check/test/build remain applicable. Git untouched.

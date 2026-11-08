@@ -1,0 +1,15 @@
+---
+import Layout from '../../layout/Layout.astro';
+import { projectList } from '../../server/cadcon.ts';
+export const prerender = false;
+const entries = await projectList();
+---
+<Layout title="Projects" crumb="Projects">
+  <h1>Projects</h1>
+  <p>Each project has its own published models, print releases and local working models.</p>
+  {entries.filter(p => p.registered).map(p => <article>
+    <h2>{p.available || p.published_available ? <a href={`/projects/${p.id}`}>{p.name}</a> : p.name}</h2>
+    <p>{p.id} · {p.available ? 'Local source available' : 'Local source unavailable; published files may still be available'}</p>
+  </article>)}
+</Layout>
+<style>article{padding:20px;border:1px solid #586477;border-radius:12px;margin:20px 0}p{max-width:80ch}</style>

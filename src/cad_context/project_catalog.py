@@ -18,7 +18,7 @@ class Root(BaseModel):
     candidates: list[str] = Field(default_factory=list)
 
 
-class Entry(BaseModel):
+class Location(BaseModel):
     model_config = ConfigDict(extra="forbid")
     root: str
     path: str
@@ -31,6 +31,10 @@ class Entry(BaseModel):
         ):
             raise ValueError("project path must be a confined relative POSIX path")
         return value
+
+
+class Entry(Location):
+    publication: Location | None = None
 
 
 class Catalog(BaseModel):
@@ -49,6 +53,8 @@ class Catalog(BaseModel):
                 raise ValueError("project ids must be nonempty names, not paths")
             if entry.root not in self.roots:
                 raise ValueError(f"unknown root {entry.root!r} for {name}")
+            if entry.publication and entry.publication.root not in self.roots:
+                raise ValueError(f"unknown publication root for {name}")
         return self
 
 
@@ -152,6 +158,19 @@ def listing() -> dict:
     rows = []
     known = set()
     for name in catalog.projects:
+        entry = catalog.projects[name]
+        published_available = False
+        if entry.publication:
+            try:
+                parent = resolve_root(entry.publication.root, catalog)
+                published_available = bool(
+                    parent
+                    and (
+                        parent / entry.publication.path / "web/latest/manifest.json"
+                    ).is_file()
+                )
+            except ProjectError:
+                pass
         path = None
         error = None
         try:
@@ -170,6 +189,7 @@ def listing() -> dict:
                 "registered": True,
                 "default": name == catalog.default,
                 "available": error is None,
+                "published_available": published_available,
                 "error": error,
             }
         )

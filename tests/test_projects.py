@@ -94,7 +94,7 @@ def test_project_schema_defaults_and_artifacts_stay_with_project(sample_project)
 
     built = api.build("project-plate")
     exported = exchange.export(built, ["svg", "dxf"])
-    expected = sample_project / "cad" / "project-plate"
+    expected = workspace.project_cache(sample_project) / "cad" / "project-plate"
     assert set(exported["files"].values()) == {
         expected / "project-plate.svg",
         expected / "project-plate.dxf",

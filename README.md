@@ -75,26 +75,26 @@ default. It identifies the project by a root alias and relative folder, without
 committing a machine-specific absolute path. Plain `uv run cadcon web` therefore
 opens the animal puzzle, including its image gallery and geometry generators.
 
-On each machine, bind the `models` root to the folder containing your projects:
+On each machine bind source and publication storage separately:
 
 ```powershell
-uv run cadcon project root models "G:\My Drive\Projects\3d-models"
+uv run cadcon project root model-sources "C:\dev\VectorMind\model-projects"
+uv run cadcon project root shared-models "G:\My Drive\Flatshare\3D Models Shared\projects"
 uv run cadcon project list
 uv run cadcon web
 ```
 
-The binding is saved in ignored `config/projects.local.yaml`, survives cache
-cleanup, and can differ on every machine. Alternatively set `CADCON_PROJECTS_ROOT`
-to that folder; it overrides the local binding. Without either, the catalog tries
-`~/My Drive/Projects/3d-models` and the older
-`~/My Drive/Flatshare/3D Models Shared/projects`. If both exist, bind explicitly.
+Bindings are saved in ignored config/projects.local.yaml, survive cache cleanup,
+and may differ per machine. CADCON_SOURCES_ROOT and CADCON_SHARED_PROJECTS_ROOT
+override these roots. Source is outside cache; shared storage receives only
+explicit consumer publications and reference/source recovery snapshots.
 There is no Google Drive API or automatic drive-letter scan: Drive must expose
 the project files locally. Missing roots produce an actionable error.
 
 The catalog includes `airfoil-wing` and `reference-parts`, preserved from the
 workbench cache in the personal models root. Each owns generator source, original
 cached exports, verified default geometry, and a portfolio. The animal puzzle
-remains in a separate `shared-models` root at the old shared Drive location;
+uses local `model-sources` and a separate `shared-models` publication root;
 override that root with `CADCON_SHARED_PROJECTS_ROOT` or `project root shared-models
 <path>`. It remains the default. On this machine, `models` is bound to
 `~/My Drive/Projects/3d-models`.
@@ -150,11 +150,11 @@ OpenSCAD; arbitrary project dependency environments are not part of the
 workbench contract.
 
 Built-in artifacts remain under `.cache/cad/`. Project artifacts and their
-measurement summaries travel with the project:
+measurement summaries remain in the local project cache:
 
 ```text
-<project>/cad/<generator>/<generator>.<ext>
-<project>/cad/<generator>/<generator>.measurements.json
+.cache/projects/<project-id>/cad/<generator>/<generator>.<ext>
+.cache/projects/<project-id>/cad/<generator>/<generator>.measurements.json
 ```
 
 ## Generate And Verify
@@ -300,10 +300,11 @@ it. `cadcon generate` and `verify` use that selection for STL and derived GLB;
 the default writer remains unchanged. No post-export mesh repair is performed.
 An optional `portfolio: {entry: PORTFOLIO.html, files: [images/overview.svg]}`
 in `project.yaml` exposes explicitly listed presentation files and availability
-in the JSON result. With `cadcon web`, open `/project` for the drawings, SVGs,
-images and interactive generated models. Paths are project-relative, use forward
-slashes, and are confined to the project. The HTML entry is sandboxed; model
-downloads continue to use the generator artifact routes.
+in the JSON result for compatibility. Open `/projects` to list projects,
+`/projects/<id>` for published models/releases, and `/projects/<id>/workbench`
+for local cache models and regenerated review evidence. `/project` redirects
+to the project list. Published and local file routes are separately allowlisted
+and realpath-confined; generated downloads remain confined to local artifact roots.
 
 ### `cadcon fetch [<tool>|--all|--list]`
 
@@ -370,3 +371,26 @@ corepack pnpm build
 Geometry proof is measurement, not appearance: STEP is imported again, meshes
 are checked for watertightness/volume/bounds, and 2D formats are re-read for
 structure and units.
+
+## Project working files, publication and recovery
+
+All generated project geometry now lives under `.cache/projects/<id>/cad/`. Keep durable model code, inputs, specs and original references outside cache. Project source and Drive publication roots are separately catalogued; bind this machine with `cadcon project root model-sources <parent>` and `cadcon project root shared-models <drive-projects-parent>`.
+
+```powershell
+uv run cadcon project list
+uv run cadcon --project animal-puzzle project rebuild
+uv run cadcon project publish animal-puzzle
+uv run cadcon project snapshot animal-puzzle
+uv run cadcon project restore animal-puzzle <new-source-folder>
+# Only on explicit user request:
+uv run cadcon project release animal-puzzle YYYY-MM-DD
+uv run cadcon project freeze animal-puzzle YYYY-MM-DD
+```
+
+`rebuild` recreates/validates all declared model exports and recovery/proof scripts locally. `publish` exports only declared latest GLB/reference views and the portable source/reference snapshot, never a print release. `snapshot` refreshes source recovery without publishing geometry. `restore` validates checksums and refuses to overwrite local edits. After cache loss, select the durable source and rebuild; on a new machine restore/bind source first. Exact mesh bytes need not match, but topology and measured geometry must pass verification.
+
+Open `/projects` for the project list, `/projects/animal-puzzle` for published models and dated print releases, and `/projects/animal-puzzle/workbench` for local mutable working models. Published files remain usable with an empty cache or missing local source. Legacy `/project` redirects to the list. Dated print folders contain only explicit individual-piece generic 3MF packages plus a manifest. No `current` folder or automatic new release. Git initialization/commits remain maintainer-owned; Drive source snapshots provide continuation until source history is published.
+
+To resume after a proof-script-only fix without redoing unchanged exports, use `cadcon --project animal-puzzle project rebuild --reuse-exports`. The saved verified source/output checkpoint must still match. A clean-cache rebuild always regenerates everything. For published browsing without local project source, start `cadcon --no-project web`.
+
+Dated print downloads can be historical even when the viewer shows the latest model. `cadcon project view <id>` reports each release's source relationship to the published viewer snapshot; the project page warns about untracked historical exports or different source versions. New releases record the source identity and each file's generator. A filename revision, date or passing mesh check does not establish current appearance approval. Review the active generator mapping and approval record before selecting files for a release.

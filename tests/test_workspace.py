@@ -9,6 +9,17 @@ from cad_context import artifacts, backends, results, workspace
 pytestmark = pytest.mark.usefixtures("cache")
 
 
+def test_model_git_checkout_does_not_replace_workbench_root(tmp_path, monkeypatch):
+    expected = workspace.repo_root()
+    model = tmp_path / "model"
+    (model / ".git").mkdir(parents=True)
+    monkeypatch.delenv(workspace.ROOT_ENV_VAR, raising=False)
+    monkeypatch.chdir(model)
+    assert workspace.repo_root() == expected
+    monkeypatch.setenv(workspace.ROOT_ENV_VAR, str(model))
+    assert workspace.repo_root() == model
+
+
 def test_every_execution_path_lives_under_the_cache(cache):
     for directory in (
         workspace.results_dir(),

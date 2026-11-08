@@ -4,16 +4,23 @@ roots:
   models:
     env: CADCON_PROJECTS_ROOT
     candidates:
-      - ~/My Drive/Projects/3d-models
-      - ~/My Drive/Flatshare/3D Models Shared/projects
+    - ~/My Drive/Projects/3d-models
+    - ~/My Drive/Flatshare/3D Models Shared/projects
   shared-models:
     env: CADCON_SHARED_PROJECTS_ROOT
     candidates:
-      - ~/My Drive/Flatshare/3D Models Shared/projects
+    - ~/My Drive/Flatshare/3D Models Shared/projects
+  model-sources:
+    env: CADCON_SOURCES_ROOT
+    candidates:
+    - ../model-projects
 projects:
   animal-puzzle:
-    root: shared-models
-    path: 2026-10-24-animal-puzzle
+    root: model-sources
+    path: animal-puzzle
+    publication:
+      root: shared-models
+      path: animal-puzzle
   airfoil-wing:
     root: models
     path: airfoil-wing

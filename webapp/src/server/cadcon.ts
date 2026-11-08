@@ -178,11 +178,32 @@ export function generatorSchema(id: string): Promise<GeneratorSchema> {
 }
 
 export interface ProjectInfo {
+  id?: string;
+  working_root?: string;
+  working_files?: string[];
   active: boolean;
   project: string | null;
   name?: string;
   description?: string;
   portfolio?: { entry: string; files: { path: string; available: boolean }[] } | null;
+}
+
+export interface PublishedProject {
+  id: string;
+  publication_root: string;
+  published: null | { name: string; description: string; source_identity: string;
+    models: { id: string; file: string; generator: string }[];
+    references?: { file: string }[] };
+  releases: { date: string; status: string; note?: string; files: Record<string, string>;
+    published_source_relation: 'legacy-untracked' | 'no-published-source' | 'same-source' | 'different-source' }[];
+}
+
+export async function publishedProject(id: string): Promise<PublishedProject> {
+  return (await cadcon(['project', 'view', id])).data as PublishedProject;
+}
+
+export async function projectList(): Promise<{ id: string | null; name: string; available: boolean; registered: boolean; published_available?: boolean }[]> {
+  return (await cadcon(['project', 'list'])).data.projects;
 }
 
 export async function projectInfo(): Promise<ProjectInfo> {

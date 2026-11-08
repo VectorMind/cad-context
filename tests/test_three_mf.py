@@ -260,15 +260,18 @@ def build(params):
         name = declaration["id"]
         result = runner.invoke(app, ["--project", str(root), "verify", name])
         assert result.exit_code == 0, result.output
-        path = root / "cad" / name / f"{name}.3mf"
+        from cad_context import workspace
+
+        path = workspace.project_cache(root) / "cad" / name / f"{name}.3mf"
         assert path.exists()
         summary = json.loads(path.with_name(f"{name}.measurements.json").read_text())
         assert summary["measurements"]["3mf"]["mesh_objects"] == 1
         assert summary["measurements"]["3mf"]["volume"] == pytest.approx(
             5083 * (1 if name == "piece-one" else 2)
         )
-        assert path.resolve().is_relative_to(root.resolve())
-    assert len(list(root.rglob("*.3mf"))) == 2
+        assert path.resolve().is_relative_to(workspace.cache_dir().resolve())
+    assert len(list(workspace.project_cache(root).rglob("*.3mf"))) == 2
+    assert not list(root.rglob("*.3mf"))
     assert not list(root.rglob("__pycache__"))
     projects.configure_command_project(None)
 
@@ -383,6 +386,8 @@ def test_verify_optional_openscad_renderer_degrades(tmp_path, monkeypatch, box):
     payload = json.loads((workspace.results_dir() / "verify-piece.json").read_text())
     assert payload["status"] == "degraded"
     assert all(payload["data"]["checks"].values())
+
+
 def test_mesh_bounds_budget_is_translation_invariant():
     from cad_context.exchange.three_mf import bounds_match
 
@@ -391,5 +396,3 @@ def test_mesh_bounds_budget_is_translation_invariant():
         high = [shift + 50, 40, 10]
         assert bounds_match([shift + 0.005, 0, 0], low, low, high)
         assert not bounds_match([shift + 0.02, 0, 0], low, low, high)
-
-

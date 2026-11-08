@@ -24,6 +24,7 @@ from . import (
     generators,
     project_catalog,
     projects,
+    publication,
     results,
     web,
     workspace,
@@ -143,7 +144,9 @@ def info(ctx: typer.Context) -> None:
                 ]
             ),
             data={
-                "backends": rows, "artifacts": tools, "paths": workspace.layout(),
+                "backends": rows,
+                "artifacts": tools,
+                "paths": workspace.layout(),
                 "exchange_formats": list(exchange.FORMAT_ORDER),
             },
         )
@@ -209,9 +212,7 @@ def generate(
     fmt: FormatOption = None,
     out_dir: Annotated[
         Path | None,
-        typer.Option(
-            "--out-dir", help="Override the generator's fixed artifact path"
-        ),
+        typer.Option("--out-dir", help="Override the generator's fixed artifact path"),
     ] = None,
     measure: Annotated[
         bool,
@@ -382,9 +383,12 @@ def verify(
 
             for key in ("bounds_min", "bounds_max"):
                 checks[f"3mf_{key}_matches_native"] = bool(
-                    key in metrics and bounds_match(
-                        mesh3mf[key], metrics[key],
-                        metrics["bounds_min"], metrics["bounds_max"],
+                    key in metrics
+                    and bounds_match(
+                        mesh3mf[key],
+                        metrics[key],
+                        metrics["bounds_min"],
+                        metrics["bounds_max"],
                     )
                 )
         if "mesh" in measured:
@@ -562,30 +566,40 @@ def project_root(
     path: Annotated[Path, typer.Argument(help="This machine's project parent folder")],
 ) -> None:
     """Bind a portable storage root locally; never modifies the shared catalog."""
+
     def body() -> results.Result:
         resolved = project_catalog.bind(name, path)
         return results.Result(
-            command="project-root", summary=f"bound root: {name}",
+            command="project-root",
+            summary=f"bound root: {name}",
             facts={"root": name, "path": str(resolved)},
             files=[str(project_catalog.local_path())],
             data={"root": name, "path": str(resolved)},
         )
+
     _run(ctx, "project-root", body)
 
 
 @project_app.command("list")
 def project_list(ctx: typer.Context) -> None:
     """List catalog projects and immediate child project manifests in each root."""
+
     def body() -> results.Result:
         payload = project_catalog.listing()
         rows = payload["projects"]
         return results.Result(
-            command="project-list", summary=f"{len(rows)} projects",
-            facts={row["id"] or row["path"]:
-                   ("available" if row["available"] else "unavailable")
-                   + (" (default)" if row["default"] else "") for row in rows},
+            command="project-list",
+            summary=f"{len(rows)} projects",
+            facts={
+                row["id"] or row["path"]: (
+                    "available" if row["available"] else "unavailable"
+                )
+                + (" (default)" if row["default"] else "")
+                for row in rows
+            },
             data=payload,
         )
+
     _run(ctx, "project-list", body)
 
 
@@ -628,6 +642,106 @@ def project_info(ctx: typer.Context) -> None:
         )
 
     _run(ctx, "project-info", body)
+
+
+def _publication_result(command: str, payload: dict) -> results.Result:
+    return results.Result(
+        command=command,
+        summary=command.replace("-", " "),
+        facts={"project": payload.get("project_id", payload.get("id", ""))},
+        data=payload,
+    )
+
+
+@project_app.command("view")
+def project_view(ctx: typer.Context, project_id: str) -> None:
+    """Read published project metadata without importing or building source."""
+    _run(
+        ctx,
+        "project-view",
+        lambda: _publication_result("project-view", publication.view(project_id)),
+    )
+
+
+@project_app.command("snapshot")
+def project_snapshot(ctx: typer.Context, project_id: str) -> None:
+    """Save portable source/reference recovery data; no generated geometry."""
+    _run(
+        ctx,
+        "project-snapshot",
+        lambda: _publication_result(
+            "project-snapshot", publication.snapshot(project_id)
+        ),
+    )
+
+
+@project_app.command("restore")
+def project_restore(ctx: typer.Context, project_id: str, destination: Path) -> None:
+    """Restore source to a new folder; never overwrite existing local edits."""
+    _run(
+        ctx,
+        "project-restore",
+        lambda: _publication_result(
+            "project-restore", publication.restore(project_id, destination)
+        ),
+    )
+
+
+@project_app.command("rebuild")
+def project_rebuild(
+    ctx: typer.Context,
+    reuse_exports: Annotated[bool, typer.Option("--reuse-exports")] = False,
+) -> None:
+    """Recreate and verify the active project's disposable local working outputs."""
+
+    def body():
+        root = projects.active_path()
+        if root is None:
+            raise projects.ProjectError("select a project before rebuilding")
+        return _publication_result(
+            "project-rebuild", publication.rebuild(root, reuse_exports=reuse_exports)
+        )
+
+    _run(ctx, "project-rebuild", body)
+
+
+@project_app.command("publish")
+def project_publish(ctx: typer.Context, project_id: str) -> None:
+    """Publish verified GLBs and source snapshot; never creates a print release."""
+    _run(
+        ctx,
+        "project-publish",
+        lambda: _publication_result("project-publish", publication.publish(project_id)),
+    )
+
+
+@project_app.command("release")
+def project_release(
+    ctx: typer.Context,
+    project_id: str,
+    date: str,
+    freeze: Annotated[bool, typer.Option("--freeze")] = False,
+) -> None:
+    """Explicitly create a dated individual-piece 3MF package."""
+    _run(
+        ctx,
+        "project-release",
+        lambda: _publication_result(
+            "project-release", publication.release(project_id, date, freeze=freeze)
+        ),
+    )
+
+
+@project_app.command("freeze")
+def project_freeze(ctx: typer.Context, project_id: str, date: str) -> None:
+    """Verify checksums and freeze an existing dated print package."""
+    _run(
+        ctx,
+        "project-freeze",
+        lambda: _publication_result(
+            "project-freeze", publication.freeze(project_id, date)
+        ),
+    )
 
 
 @app.command("web")

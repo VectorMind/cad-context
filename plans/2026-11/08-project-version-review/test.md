@@ -1,0 +1,13 @@
+# Validation
+
+Required startup commands passed. Read-only detailed audit: .cache/results/model-version-review.json, .cache/reports/model-version-review.log and .cache/projects/animal-puzzle/evidence/version-audit-bear-body.svg. Current source/rebuild/viewer/snapshot identity cc22182caa5967b1e67e6fed6cf04f2c58bd2615abaaf4fb443583efafde9077. Zero changed verified cache files; zero changed snapshot files before adding this review; zero changed approval-pinned current input/generator files.
+
+Current eight 3MF package hashes match the previous full native/mesh verification ledger; all recorded nine 3MF topology/package checks are true. All four legacy packages independently reparsed with the same nine checks passing. The legacy bear rear has 5,110 faces/34,412.422984 mm³; current rounded body has 130,914 faces/34,389.602554 mm³ (native 34,389.203333 mm³). Actual mesh slice differences demonstrate geometric supersession, not merely file-byte differences. Current viewing GLBs match both manifest and rebuilt bytes for all four animals.
+
+Initial read-only trimesh 3MF loader/ordered slice path required optional networkx. No dependency was installed: used explicit 3MF XML reading with build transform and unordered trimesh.intersections.mesh_plane segments instead. Full mesh topology proof for the large fine bear head was not unnecessarily repeated: its exact file checksum still matches the verified 3,142,440-face package and measurement ledger.
+
+`uv run pytest --basetemp .cache/scratch/version-review-tests`: 143 passed, 2 skipped in 12.12 seconds. `uv run ruff check .`: passed. Logs: .cache/reports/version-review-pytest.log. Added release generator mapping and four-state source-provenance comparison regression coverage.
+
+`corepack pnpm check`, `corepack pnpm test`, `corepack pnpm build`, with ASTRO_TELEMETRY_DISABLED=1: zero check diagnostics, 11/11 tests passed, production build passed with existing bundle-size advisory. Log: .cache/reports/version-review-web.log. No live web server restarted, respecting user's previous request.
+
+`cadcon project snapshot animal-puzzle` and `cadcon project view animal-puzzle`: passed. CLI reports legacy-untracked and the explicit superseded note for the historical release. Source snapshot includes the durable review; current build identity remains unchanged. Source/workbench recovery archives and final inventory verified by .cache/scratch/finalize-publication.py. Rendered actual 3MF slice SVG with installed sharp, visually inspected the PNG, and retained shared reference SVG. New dated release, fit, manufacturing dimensions and revised turtle appearance remain intentionally unapproved; no geometry revalidation is needed for provenance/docs-only changes.

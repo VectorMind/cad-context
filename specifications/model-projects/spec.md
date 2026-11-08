@@ -1,3 +1,5 @@
+Current storage/navigation override (2026-11-08): specifications/project-publication/spec.md is authoritative. All generated project working state goes to local cache/projects/<id>; shared Drive gets explicit latest consumer publication, recovery/reference source and user-dated print releases. Historical project/cad output clauses below are superseded. Web projects use /projects and /projects/<id>, with separate local workbench.
+
 # Model Projects
 
 ## Purpose And Scope
@@ -79,7 +81,7 @@ server snapshots the resolved project as before; restart after selection changes
 
 ## Manifest
 
-The mandatory core is `project.yaml` plus `cad/`. `generators/`, `evidence/`,
+The mandatory core is `project.yaml`; `cad/` is never a source directory. `generators/`, `evidence/`,
 and model SDD documents are conventional project-owned content. Manifest schema
 version 1 is:
 
@@ -136,17 +138,17 @@ server.
 Built-in geometry remains under `.cache/cad/`. Project output uses stable paths:
 
 ```text
-<project>/cad/<generator>/<generator>.<ext>
-<project>/cad/<generator>/<generator>.measurements.json
+.cache/projects/<project-id>/cad/<generator>/<generator>.<ext>
+.cache/projects/<project-id>/cad/<generator>/<generator>.measurements.json
 ```
 
 Command results, reports, scratch files, downloads, and the active-project
 pointer remain in the repository cache. Artifact writes use a same-directory
-temporary file followed by replacement so a synced folder never exposes a
+temporary file followed by replacement so a consumer never observes a
 partially written artifact.
 
 Tests copy checked-in fixture sources to a temporary project directory before
-generating; redirected cache alone does not redirect project output.
+generating; redirected cache also redirects all project work outputs.
 
 ## Web Process Lifetime
 
@@ -174,14 +176,14 @@ empty, dot or parent components, backslashes or drive prefixes. Presentation
 types are HTML, SVG, PNG/JPEG/WebP, PDF, STEP/STP, STL, GLB, 3MF, JSON and DXF.
 Explicitly listed historical F3D archives may also be downloaded; this adds no
 Fusion runtime or authoring support.
-The web `/project` page shows generated models, downloads and declared images
-directly, without duplicate HTML portfolio frames. `/project/files/` serves only declared files,
-including the entry, after realpath confinement checks. HTML and SVG responses
-are sandboxed; neither may access the app origin or remote scripts. Generated
-models retain the existing generator artifact routes and confinement.
+The web `/projects` page lists portable project IDs. `/projects/<id>` reads
+only published consumer manifests/files; `/projects/<id>/workbench` reads local
+working models and regenerated review evidence for the selected project.
+`/project` redirects to the list. Source snapshot, GLB/reference and dated print
+file downloads are allowlisted and realpath confined. HTML/SVG review files
+remain sandboxed. See project-publication/spec.md for explicit lifecycle commands.
 
-Model-specific evidence, spec, plan, implementation log, test proof, and
-handoff live in the project folder. Repository `plans/` is reserved for changes
+Model-specific source specs, plans, acceptance records and handoffs live in the durable source folder. Generated test/review evidence lives in local project cache. Repository `plans/` is reserved for changes
 to the workbench itself.
 
 ## Format Declarations
@@ -191,3 +193,7 @@ for build123d generators and opts the generator into the single-piece contract
 in `specifications/3mf-export/spec.md`. Separate pieces declare separate
 generators; their 3MF files and measurement sidecars stay under their respective
 project artifact directories.
+
+## Consumer and regeneration declarations
+
+Optional manifest fields: id (portable slug), publication {root,path} (shared catalog location), web_models {consumer-name: generator-id}, print_models {piece-name: generator-id}, web_files (confined source/cache image paths), rebuild_scripts (confined project Python paths). Model maps must reference generators declaring GLB/3MF respectively. Registry listing remains import-free. Source is durable outside cache; the catalog entry separately declares the publication location so published browsing and source restoration work without local source.

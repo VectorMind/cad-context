@@ -146,6 +146,12 @@ class ProjectManifest(BaseModel):
     version: Literal[1] = 1
     tool: Literal["cadcon"] = "cadcon"
     name: str
+    id: str | None = None
+    publication: project_catalog.Entry | None = None
+    web_models: dict[str, str] = Field(default_factory=dict)
+    web_files: list[str] = Field(default_factory=list)
+    print_models: dict[str, str] = Field(default_factory=dict)
+    rebuild_scripts: list[str] = Field(default_factory=list)
     description: str = ""
     generators: list[GeneratorDeclaration] = Field(default_factory=list)
     exposure: dict[str, Exposure] = Field(default_factory=dict)
@@ -181,6 +187,27 @@ class ProjectManifest(BaseModel):
             raise ValueError(
                 "exposure references unknown generator(s): " + ", ".join(unknown)
             )
+        if self.id and not GENERATOR_ID_PATTERN.fullmatch(self.id):
+            raise ValueError("project id must be a lowercase slug")
+        for mapping, fmt in ((self.web_models, "glb"), (self.print_models, "3mf")):
+            for label, generator_id in mapping.items():
+                if not GENERATOR_ID_PATTERN.fullmatch(label):
+                    raise ValueError("consumer names must be lowercase slugs")
+                declaration = next(
+                    (g for g in self.generators if g.id == generator_id), None
+                )
+                if declaration is None or fmt not in declaration.formats:
+                    raise ValueError(f"{label}: generator must declare {fmt}")
+        for script in self.rebuild_scripts:
+            if (
+                not script.endswith(".py")
+                or "\\" in script
+                or ":" in script
+                or any(p in ("", ".", "..") for p in script.split("/"))
+            ):
+                raise ValueError("rebuild scripts must be confined Python paths")
+        for name in self.web_files:
+            PortfolioDeclaration.safe_path(name)
         for generator_id, exposure in self.exposure.items():
             declaration = next(g for g in self.generators if g.id == generator_id)
             if exposure.preview and exposure.preview not in declaration.formats:
@@ -256,9 +283,7 @@ def persist(path: Path) -> Path:
     selection = (
         str(path) if str(path) in project_catalog.load().projects else str(resolved)
     )
-    temporary.write_text(
-        json.dumps({"project": selection}, indent=2), encoding="utf-8"
-    )
+    temporary.write_text(json.dumps({"project": selection}, indent=2), encoding="utf-8")
     temporary.replace(target)
     return resolved
 
@@ -295,7 +320,7 @@ def initialise(path: Path, *, dry_run: bool = False) -> dict[str, Any]:
     manifest = root / MANIFEST_FILENAME
     if manifest.exists():
         raise ProjectError(f"refusing to overwrite existing manifest: {manifest}")
-    directories = [root / "cad", root / "generators", root / "evidence"]
+    directories = [root / "generators", root / "evidence"]
     payload = {
         "version": 1,
         "tool": "cadcon",
@@ -330,11 +355,24 @@ def describe(path: Path | None = None) -> dict[str, Any]:
         "project": str(root),
         "manifest": str(root / MANIFEST_FILENAME),
         "name": manifest.name,
+        "id": identity(root),
         "description": manifest.description,
         "generator_ids": [generator.id for generator in manifest.generators],
-        "cad": str((root / "cad").resolve()),
+        "cad": str(workspace.project_cache(root) / "cad"),
+        "working_root": str(workspace.project_cache(root)),
+        "working_files": [
+            p.relative_to(workspace.project_cache(root)).as_posix()
+            for p in sorted((workspace.project_cache(root) / "evidence").rglob("*"))
+            if p.is_file()
+            and p.suffix.lower() in {".svg", ".png", ".jpg", ".jpeg", ".json", ".pdf"}
+        ],
         "portfolio": portfolio_metadata(root, manifest),
     }
+
+
+def identity(root: Path) -> str:
+    manifest = load_manifest(root)
+    return manifest.id or re.sub(r"[^a-z0-9]+", "-", manifest.name.lower()).strip("-")
 
 
 def portfolio_metadata(root: Path, manifest: ProjectManifest) -> dict[str, Any] | None:
@@ -409,7 +447,7 @@ def project_specs() -> tuple[Any, ...]:
                 family=declaration.family or declaration.id,
                 origin="project",
                 project_root=root,
-                artifact_root=(root / "cad").resolve(),
+                artifact_root=workspace.project_cache(root) / "cad",
                 parameter_defaults=declaration.defaults,
                 exposure={
                     "editable": exposure.editable,

@@ -1,0 +1,42 @@
+---
+import Layout from '../../../layout/Layout.astro';
+import ModelView from '../../../components/ModelView.tsx';
+import { publishedProject, projectInfo } from '../../../server/cadcon.ts';
+export const prerender = false;
+const id = Astro.params.project ?? '';
+let data;
+try { data = await publishedProject(id); }
+catch { return new Response('Project unavailable', {status:404}); }
+const active = await projectInfo().catch(() => null);
+const published = data.published;
+const fileUrl = (path:string) => `/projects/${encodeURIComponent(id)}/files/${path.split('/').map(encodeURIComponent).join('/')}`;
+---
+<Layout title={published?.name ?? id} crumb={`Projects / ${id}`}>
+  <p><a href="/projects">All projects</a></p>
+  <h1>{published?.name ?? id}</h1>
+  <p>{published?.description}</p>
+  <nav><a href="#models">Published models</a> · <a href="#prints">Dated print releases</a> · {active?.id === id && <a href={`/projects/${id}/workbench`}>Local working models</a>}</nav>
+  <h2 id="models">Published models</h2>
+  <p>Latest published views. Local regeneration does not replace these files.</p>
+  {!published && <p>No models published yet.</p>}
+  <div class="grid">{published?.models.map(model => <section>
+    <h3>{model.id}</h3>
+    <div class="model"><ModelView client:visible url={fileUrl(`web/latest/${model.file}`)} format="glb" wireframe={false} showGrid={false} fitToken={0}/></div>
+    <a href={fileUrl(`web/latest/${model.file}`)}>Download viewing GLB</a>
+  </section>)}</div>
+  <div class="grid">{published?.references?.map(ref => <figure><img src={fileUrl(`web/latest/${ref.file}`)} alt={ref.file} loading="lazy"/><figcaption>{ref.file}</figcaption></figure>)}</div>
+  <h2 id="prints">Dated print releases</h2>
+  <p>Individual-piece geometry for slicer import. Read each release's status; physical fit and printer settings are separate.</p>
+  {data.releases.length === 0 && <p>No print releases published. New releases are created explicitly.</p>}
+  {data.releases.map(release => <section><h3>{release.date} · {release.status}</h3>
+    {release.published_source_relation === 'legacy-untracked' && <p><strong>Historical export: no link to the current model source.</strong> These downloads may differ from the models shown above.</p>}
+    {release.published_source_relation === 'different-source' && <p><strong>Different source version from the published models above.</strong> This dated release is preserved separately.</p>}
+    {release.published_source_relation === 'same-source' && <p>Exported from the same source version as the published models above. Check the release's approval and fit status separately.</p>}
+    {release.note && <p>{release.note}</p>}
+    <p>{Object.keys(release.files).map(name => <a class="download" href={fileUrl(`3d-print/${release.date}/${name}`)}>{name}</a>)}</p>
+    <a href={fileUrl(`3d-print/${release.date}/release.json`)}>Release manifest</a>
+  </section>)}
+  <h2>Source and recovery</h2>
+  <p><a href={fileUrl('reference/source.zip')}>Portable source and reference bundle</a> · <a href={fileUrl('reference/source.json')}>Checksums</a></p>
+</Layout>
+<style>.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:20px;margin:20px 0}section,figure{min-width:0;margin:0;padding:16px;border:1px solid #586477;border-radius:12px}.model{height:360px;position:relative}.model :global(.viewport){width:100%;height:100%;min-height:0}img{display:block;width:100%;height:280px;object-fit:contain;background:white}.download{display:inline-block;margin:8px 18px 8px 0}nav{margin:24px 0}h2{margin-top:40px}figcaption{overflow-wrap:anywhere}</style>

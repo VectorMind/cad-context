@@ -1,3 +1,5 @@
+Current storage/navigation override (2026-11-08): specifications/project-publication/spec.md is authoritative. All generated project working state goes to local cache/projects/<id>; shared Drive gets explicit latest consumer publication, recovery/reference source and user-dated print releases. Historical project/cad output clauses below are superseded. Web projects use /projects and /projects/<id>, with separate local workbench.
+
 # Workspace Layout And Output Discipline
 
 ## Python Environments In Shared Checkouts
@@ -43,12 +45,11 @@ The cache root is overridable with `CAD_CONTEXT_CACHE`; the repository root with
 `CAD_CONTEXT_ROOT`. Tests redirect the cache. Nothing under `.cache/` or
 `.tools/` is committed.
 
-An active external project adds a durable geometry root while leaving
-operational noise in the repository cache:
+An active external project uses a portable-ID scoped local working cache:
 
 ```text
-<project>/cad/<generator-id>/<generator-id>.<ext>
-<project>/cad/<generator-id>/<generator-id>.measurements.json
+.cache/projects/<project-id>/cad/<generator-id>/<generator-id>.<ext>
+.cache/projects/<project-id>/cad/<generator-id>/<generator-id>.measurements.json
 ```
 
 Built-in generators continue to write under `.cache/cad/`, even while a project

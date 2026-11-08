@@ -21,6 +21,7 @@ const { title, crumb, command } = Astro.props;
     <div class="app">
       <header class="appbar">
         <a class="brand" href="/">cad-context</a>
+        <a href="/projects">Projects</a>
         {crumb && <span class="crumb">{crumb}</span>}
         <span class="spacer"></span>
         {command && <code>{command}</code>}

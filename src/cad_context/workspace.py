@@ -36,14 +36,20 @@ _MARKERS = ("pyproject.toml", ".git")
 def repo_root() -> Path:
     """Locate the workspace root.
 
-    ``CAD_CONTEXT_ROOT`` wins; otherwise walk up from the current directory
-    looking for ``pyproject.toml`` / ``.git``; otherwise the package's own
-    parent tree; otherwise the current directory.
+    ``CAD_CONTEXT_ROOT`` wins. Prefer a workbench checkout over an unrelated
+    model project's Git root; fall back to ordinary workspace markers.
     """
     env = os.environ.get(ROOT_ENV_VAR)
     if env:
         return Path(env).expanduser().resolve()
-    for start in (Path.cwd(), Path(__file__).resolve()):
+    starts = (Path.cwd(), Path(__file__).resolve())
+    for start in starts:
+        for candidate in (start, *start.parents):
+            if (candidate / "config/artifacts.yaml").is_file() and (
+                candidate / "pyproject.toml"
+            ).is_file():
+                return candidate
+    for start in starts:
         for candidate in (start, *start.parents):
             if any((candidate / marker).exists() for marker in _MARKERS):
                 return candidate
@@ -67,6 +73,13 @@ def reports_dir() -> Path:
 def cad_dir() -> Path:
     """Repository-cache geometry root for built-in generators."""
     return cache_dir() / "cad"
+
+
+def project_cache(root: Path) -> Path:
+    """Disposable working state, keyed by the portable project ID."""
+    from . import projects
+
+    return cache_dir() / "projects" / projects.identity(root)
 
 
 def scratch_dir() -> Path:
@@ -123,5 +136,5 @@ def layout() -> dict[str, str]:
         "active_project": str(active) if active else "none",
     }
     if active:
-        payload["project_cad"] = str((active / "cad").resolve())
+        payload["project_cad"] = str(project_cache(active) / "cad")
     return payload
